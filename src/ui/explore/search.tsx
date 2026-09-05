@@ -132,7 +132,7 @@ export const Module2Search: React.FC<Module2Props> = ({
       </div>
 
       {/* Top Floating Search Bar */}
-      <section className="relative z-30 px-4 pb-3 pt-3">
+      <section className="relative z-30 px-4 pb-3 pt-6">
         <div className="flex h-[52px] w-full items-center rounded-full border border-slate-100 bg-white px-4 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.06)]">
           <button
             type="button"
