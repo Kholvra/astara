@@ -1,28 +1,27 @@
 import "~/styles/globals.css";
 
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { type Metadata } from "next";
-import { Geist } from "next/font/google";
 
-import { TRPCReactProvider } from "~/trpc/react";
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta-sans",
+  weight: ["400", "500", "600", "700", "800"],
+});
 
 export const metadata: Metadata = {
-  title: "Astara — Rute TransJakarta yang mudah diikuti",
-  description: "Pendamping perjalanan TransJakarta yang explainable.",
+  title: "Astara - Explainable TransJakarta Transit Companion",
+  description: "Navigasi TransJakarta yang tenang, pasti, dan jelas langkah fisiknya.",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
-
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist-sans",
-});
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" className={`${geist.variable}`}>
-      <body>
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+    <html lang="id" className={plusJakartaSans.variable}>
+      <body className="font-sans antialiased text-slate-800 bg-[#070b14]">
+        {children}
       </body>
     </html>
   );
