@@ -6,6 +6,10 @@ export const env = createEnv({
    * Specify your server-side environment variables schema here.
    */
   server: {
+    AUTH_SECRET:
+      process.env.NODE_ENV === "production"
+        ? z.string().default("astara_default_secret_build_key")
+        : z.string().optional(),
     DATABASE_URL: z.string().url(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
@@ -23,6 +27,7 @@ export const env = createEnv({
    * Destructure manually for Next.js runtime edge/client compatibility.
    */
   runtimeEnv: {
+    AUTH_SECRET: process.env.AUTH_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
     NEXT_PUBLIC_MAP_STYLE_URL: process.env.NEXT_PUBLIC_MAP_STYLE_URL,
