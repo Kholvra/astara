@@ -1,7 +1,7 @@
 "use client";
 
 import { Map as MapLibreMap, setWorkerUrl } from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
+//import mapgl css di styles/globals.css
 import { useEffect, useRef, useState } from "react";
 
 const JAKARTA_CENTER: [number, number] = [106.827, -6.175];
@@ -56,26 +56,23 @@ export function AstaraMap({ styleUrl }: AstaraMapProps) {
   }[status];
 
   return (
-    <section aria-label="Peta Astara" className="space-y-3">
-      <div className="relative h-72 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
+    <div className="relative h-full w-full bg-slate-100">
+      {/* Canvas container peta full viewport */}
+      <div
+        ref={containerRef}
+        className={status === "unconfigured" ? "hidden" : "h-full w-full"}
+      />
+
+      {/* Fallback state overlay */}
+      {status !== "ready" && (
         <div
-          ref={containerRef}
-          className={status === "unconfigured" ? "hidden" : "h-full w-full"}
-        />
-        {status !== "ready" && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="absolute inset-0 flex items-center justify-center bg-slate-100/95 px-6 text-center text-sm text-slate-600"
-          >
-            {statusMessage}
-          </div>
-        )}
-      </div>
-      <p className="text-xs text-slate-500">
-        Peta adalah pendamping visual. Ikuti route card untuk langkah
-        perjalanan.
-      </p>
-    </section>
+          role="status"
+          aria-live="polite"
+          className="absolute inset-0 flex items-center justify-center bg-slate-50/90 px-6 text-center text-xs text-slate-400"
+        >
+          {statusMessage}
+        </div>
+      )}
+    </div>
   );
 }
