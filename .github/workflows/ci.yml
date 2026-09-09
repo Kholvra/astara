@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # Build-time schema placeholders only; never use these for deployed environments.
+      AUTH_SECRET: ci-only-auth-secret
+      AUTH_DISCORD_ID: ci-only-discord-id
+      AUTH_DISCORD_SECRET: ci-only-discord-secret
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/astara_ci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Check lint and types
+        run: pnpm check
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build application
+        run: pnpm build
