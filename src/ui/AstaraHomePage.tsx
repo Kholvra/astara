@@ -1,16 +1,10 @@
-import Link from "next/link";
-import { type Session } from "next-auth";
-
 import { AstaraMap } from "~/map/AstaraMap";
 
 export type AstaraHomePageProps = {
   mapStyleUrl?: string;
-  session: Session | null;
 };
 
-export function AstaraHomePage({ mapStyleUrl, session }: AstaraHomePageProps) {
-  const accountLabel = session?.user.name ?? session?.user.email ?? "akun";
-
+export function AstaraHomePage({ mapStyleUrl }: AstaraHomePageProps) {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10">
@@ -28,12 +22,6 @@ export function AstaraHomePage({ mapStyleUrl, session }: AstaraHomePageProps) {
             </p>
           </div>
 
-          <Link
-            href={session ? "/api/auth/signout" : "/api/auth/signin"}
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-100"
-          >
-            {session ? `Keluar (${accountLabel})` : "Masuk"}
-          </Link>
         </header>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
