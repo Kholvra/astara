@@ -1,28 +1,30 @@
 @import "tailwindcss";
 @import "maplibre-gl/dist/maplibre-gl.css";
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
+  --font-sans:
+    var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-    
-  --font-sans: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --font-sans:
+    var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
 
   /* Brand Palette */
-  --color-astara-canvas: #F8FAFC;
-  --color-astara-card: #FFFFFF;
-  --color-astara-divider: #E2E8F0;
+  --color-astara-canvas: #f8fafc;
+  --color-astara-card: #ffffff;
+  --color-astara-divider: #e2e8f0;
   --color-astara-emerald: #059669;
 
   /* Koridor TransJakarta */
-  --color-corridor-red: #E11D48;
-  --color-corridor-blue: #2563EB;
-  --color-corridor-orange: #EA580C;
+  --color-corridor-red: #e11d48;
+  --color-corridor-blue: #2563eb;
+  --color-corridor-orange: #ea580c;
 
   /* Elevation Shadows */
   --shadow-sheet: 0 -8px 30px rgba(15, 23, 42, 0.06);
   --shadow-float: 0 6px 20px rgba(15, 23, 42, 0.08);
 }
 
-/* 
+/*
   ========================================
           ASTARA DESIGN TOKENS
   ========================================
@@ -41,11 +43,11 @@
   --astara-design-tokens-color-text-primary: rgba(15, 23, 42, 1);
   --astara-design-tokens-color-text-secondary: rgba(71, 85, 105, 1);
   --astara-design-tokens-color-text-tertiary: rgba(148, 163, 184, 1);
-  
+
   --astara-design-tokens-radius-lg: 16px;
   --astara-design-tokens-radius-pill: 9999px;
   --astara-design-tokens-radius-sheet: 28px;
-  
+
   --animate-spin: spin 1s linear infinite;
 }
 
@@ -65,10 +67,22 @@
 }
 
 @keyframes fade-in {
-  0% { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: none; }
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 @keyframes fade-up {
-  0% { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: none; }
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }

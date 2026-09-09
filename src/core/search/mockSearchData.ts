@@ -8,7 +8,7 @@ export const MOCK_SEARCH_ITEMS: SearchResultItem[] = [
     type: "stop_or_route",
     coordinates: [106.8272, -6.1754],
     routes: ["Koridor 1", "Koridor 2"],
-    verification: "Terverifikasi",
+    verification: "Data terbatas",
     confidence: "high",
     requiresPlatformChoice: true,
     platforms: [
@@ -33,7 +33,7 @@ export const MOCK_SEARCH_ITEMS: SearchResultItem[] = [
     routes: ["Koridor 1", "10H"],
     walkTimeMinutes: 3,
     walkDistanceMeters: 180,
-    verification: "Terverifikasi",
+    verification: "Data terbatas",
     confidence: "high",
   },
   {
@@ -44,7 +44,7 @@ export const MOCK_SEARCH_ITEMS: SearchResultItem[] = [
     coordinates: [106.8271, -6.1804],
     routes: ["1P", "1R", "2Q"],
     walkDistanceMeters: 250,
-    verification: "Terverifikasi",
+    verification: "Data terbatas",
     confidence: "high",
   },
   {
@@ -54,7 +54,7 @@ export const MOCK_SEARCH_ITEMS: SearchResultItem[] = [
     type: "place_or_address",
     coordinates: [106.8272, -6.1754],
     walkDistanceMeters: 100,
-    verification: "Terverifikasi",
+    verification: "Data terbatas",
     confidence: "high",
   },
   {
