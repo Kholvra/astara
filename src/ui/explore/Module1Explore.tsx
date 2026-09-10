@@ -44,6 +44,7 @@ type Module1Props = {
   onOpenSearch: (context: SearchContext) => void;
   onSelectDestination: (query: string) => void;
   origin?: RoutableLocation | null;
+  timingControls?: React.ReactNode;
   children?: React.ReactNode;
 };
 
@@ -56,6 +57,7 @@ export const Module1Explore = ({
   onOpenSearch,
   onSelectDestination,
   origin,
+  timingControls,
   children,
 }: Module1Props) => {
   return (
@@ -94,7 +96,7 @@ export const Module1Explore = ({
 
       <section
         id="explore-bottom-sheet"
-        className="absolute right-0 bottom-0 left-0 z-30 rounded-t-[32px] border-t border-slate-100 bg-white px-5 pt-2.5 pb-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]"
+        className="absolute right-0 bottom-0 left-0 z-30 max-h-[78%] overflow-y-auto rounded-t-[32px] border-t border-slate-100 bg-white px-5 pt-2.5 pb-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]"
       >
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300" />
 
@@ -125,6 +127,8 @@ export const Module1Explore = ({
             {locationMessage}
           </p>
         )}
+
+        {timingControls ? <div className="mt-3">{timingControls}</div> : null}
 
         <p className="text-[11px] leading-4 text-slate-500">
           {activeContext === "origin"
