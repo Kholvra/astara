@@ -1,5 +1,7 @@
 "use client";
 
+import { BusFront, ChevronRight, MapPin } from "lucide-react";
+
 import { resolveSearchSelection } from "./searchSelectionController";
 import { SearchTrustBlock } from "./SearchTrustBlock";
 import type {
@@ -113,36 +115,38 @@ type SearchResultButtonProps = {
 };
 
 const SearchResultButton = ({ result, onSelect }: SearchResultButtonProps) => {
+  const isPlace = result.type === "place_or_address";
+
   return (
     <button
       type="button"
       onClick={() => onSelect(result)}
-      className="flex min-h-20 w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 focus-visible:bg-emerald-50 focus-visible:outline-none"
-      aria-label={`Kies ${result.title}`}
+      className="flex min-h-[64px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 focus-visible:bg-emerald-50 focus-visible:outline-none"
+      aria-label={`Pilih ${result.title}`}
     >
       <span
         aria-hidden="true"
-        className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-sm text-emerald-700"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700"
       >
-        {result.type === "place_or_address" ? "⌖" : "↔"}
+        {isPlace ? (
+          <MapPin className="h-4 w-4" />
+        ) : (
+          <BusFront className="h-4 w-4" />
+        )}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm leading-5 font-bold break-words text-slate-900">
           {result.title}
         </span>
-        <span className="block text-xs leading-5 break-words text-slate-500">
+        <span className="block text-xs leading-4 break-words text-slate-500">
           {getResultTypeLabel(result)}
           {result.subtitle ? ` • ${result.subtitle}` : ""}
         </span>
-        <SearchTrustBlock
-          source={result.source}
-          confidence={result.confidence}
-          verification={result.verification}
-        />
       </span>
-      <span className="mt-2 shrink-0 text-slate-400" aria-hidden="true">
-        →
-      </span>
+      <ChevronRight
+        className="h-4 w-4 shrink-0 text-slate-400"
+        aria-hidden="true"
+      />
     </button>
   );
 };

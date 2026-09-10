@@ -121,16 +121,18 @@ export const AstaraMapSurface = ({
                   )}
                 </div>
               )}
-              <ul
-                className="flex max-w-full flex-wrap gap-2 rounded-xl bg-white/95 px-3 py-2 text-[11px] text-slate-700 shadow-sm backdrop-blur"
-                aria-label="Legenda peta"
-              >
-                {MAP_LEGEND.map((entry) => (
-                  <li key={entry.id} className="min-w-0 break-words">
-                    {entry.label}
-                  </li>
-                ))}
-              </ul>
+              {hasPayload && (
+                <ul
+                  className="flex max-w-full flex-wrap gap-2 rounded-xl bg-white/95 px-3 py-2 text-[11px] text-slate-700 shadow-sm backdrop-blur"
+                  aria-label="Legenda peta"
+                >
+                  {MAP_LEGEND.map((entry) => (
+                    <li key={entry.id} className="min-w-0 break-words">
+                      {entry.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className="pointer-events-auto flex min-w-0 flex-col items-start gap-2">
@@ -284,12 +286,7 @@ function getStatusPanel(
     };
   }
   if (!hasPayload) {
-    return {
-      message: "Pilih rute untuk melihat jalurnya.",
-      role: "status",
-      tone: "border-slate-200 bg-white/95 text-slate-700",
-      retry: false,
-    };
+    return undefined;
   }
   if (routeState === "unavailable") {
     return {

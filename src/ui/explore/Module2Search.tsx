@@ -8,6 +8,8 @@ import {
   type KeyboardEvent,
 } from "react";
 
+import { ArrowLeft, X } from "lucide-react";
+
 import {
   boundSearchQuery,
   DEMO_SEARCH_INDEX,
@@ -137,22 +139,10 @@ export const Module2Search = ({
           <button
             type="button"
             onClick={() => (pending ? setPending(null) : onBack())}
-            className="mr-2 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl text-slate-700 transition-colors hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-95"
+            className="mr-1 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-slate-600 transition-colors hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-95"
             aria-label={pending ? "Kembali ke hasil pencarian" : "Kembali"}
           >
-            <svg
-              className="h-5 w-5 stroke-[2.4]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <ArrowLeft className="h-5 w-5 stroke-[2.2]" aria-hidden="true" />
           </button>
           <label className="sr-only" htmlFor="location-search-input">
             Cari {contextLabel}
@@ -172,12 +162,10 @@ export const Module2Search = ({
             <button
               type="button"
               onClick={() => runSearch("")}
-              className="ml-2 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              className="ml-1 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-slate-400 transition-colors hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
               aria-label="Hapus pencarian"
             >
-              <span aria-hidden="true" className="text-xl leading-none">
-                ×
-              </span>
+              <X className="h-4 w-4 stroke-[2.2]" aria-hidden="true" />
             </button>
           )}
         </div>

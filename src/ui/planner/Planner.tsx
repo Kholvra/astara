@@ -16,7 +16,6 @@ import {
 import type { LocationRequestFailure } from "~/ui/map/locationReader";
 import { Module1Explore } from "~/ui/explore/Module1Explore";
 import { Module2Search } from "~/ui/explore/Module2Search";
-import { TripTimingControls } from "~/ui/planner/TripTimingControls";
 import { api } from "~/trpc/react";
 import { createPlannerClient } from "./plannerClient";
 import { PlannerMap } from "./PlannerMap";
@@ -41,8 +40,7 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
   const [screen, setScreen] = useState<PlannerScreen>("explore");
   const [activeContext, setActiveContext] = useState<SearchContext>("origin");
   const [initialQuery, setInitialQuery] = useState("");
-  const [timingValidation, setTimingValidation] =
-    useState<DepartAtValidation | null>(null);
+  const currentDepartAtRef = useRef<DepartAtValidation | null>(null);
   const [locationMessage, setLocationMessage] = useState<string>();
   const [mapRetryNonce, setMapRetryNonce] = useState(0);
   const [mapDismissed, setMapDismissed] = useState(false);
@@ -65,23 +63,25 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
   ].join("|");
 
   useEffect(() => {
-    const defaultTiming = createDefaultDepartAt({
-      timezone: DEFAULT_SERVICE_TIMEZONE,
-    });
-    setTimingValidation(defaultTiming);
-    controller.setDepartAt(
-      defaultTiming.state === "valid" ? defaultTiming.input : null,
-    );
-  }, [controller]);
+    const syncCurrentTiming = () => {
+      const current = createDefaultDepartAt({
+        timezone: DEFAULT_SERVICE_TIMEZONE,
+      });
+      const prev = currentDepartAtRef.current;
+      if (
+        prev?.draft.localTime === current.draft.localTime &&
+        prev?.draft.localDate === current.draft.localDate
+      ) {
+        return;
+      }
+      currentDepartAtRef.current = current;
+      controller.setDepartAt(current.state === "valid" ? current.input : null);
+    };
 
-  useEffect(() => {
-    if (snapshot.state !== "select" || !snapshot.catalog || timingValidation) {
-      return;
-    }
-    const next = createDefaultDepartAt({ timezone: DEFAULT_SERVICE_TIMEZONE });
-    setTimingValidation(next);
-    controller.setDepartAt(next.state === "valid" ? next.input : null);
-  }, [controller, snapshot.catalog, snapshot.state, timingValidation]);
+    syncCurrentTiming();
+    const interval = setInterval(syncCurrentTiming, 10_000);
+    return () => clearInterval(interval);
+  }, [controller]);
 
   useEffect(() => {
     if (routeRef.current !== snapshot.route) {
@@ -101,6 +101,12 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
       replaceHistoryMarker("explore");
     }
   }, [replaceHistoryMarker, screen, snapshot.catalog, snapshot.state]);
+
+  useEffect(() => {
+    if (snapshot.state === "ready") {
+      controller.plan();
+    }
+  }, [controller, snapshot.state]);
 
   useEffect(() => {
     if (screen === "explore" && focusContextRef.current) {
@@ -168,14 +174,15 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
     );
   };
 
-  const handleTimingChange = (next: DepartAtValidation) => {
-    setTimingValidation(next);
-    controller.setDepartAt(next.state === "valid" ? next.input : null);
-  };
-
   const handleReset = () => {
     controller.reset();
-    setTimingValidation(null);
+    const defaultTiming = createDefaultDepartAt({
+      timezone: DEFAULT_SERVICE_TIMEZONE,
+    });
+    currentDepartAtRef.current = defaultTiming;
+    controller.setDepartAt(
+      defaultTiming.state === "valid" ? defaultTiming.input : null,
+    );
     setScreen("explore");
     setInitialQuery("");
     setLocationMessage(undefined);
@@ -240,25 +247,14 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
     if (snapshot.state === "no-route") controller.edit();
   };
 
-  const timingControls = timingValidation ? (
+  const timingControls = (
     <div className="grid gap-3">
       <PlannerStatus
         snapshot={snapshot}
         onPrimaryAction={handlePrimaryStatusAction}
       />
-      <TripTimingControls
-        validation={timingValidation}
-        onValidationChange={handleTimingChange}
-        onUseNow={() => {
-          const next = createDefaultDepartAt({
-            timezone: DEFAULT_SERVICE_TIMEZONE,
-          });
-          setTimingValidation(next);
-          controller.setDepartAt(next.state === "valid" ? next.input : null);
-        }}
-      />
     </div>
-  ) : null;
+  );
 
   if (
     snapshot.route &&

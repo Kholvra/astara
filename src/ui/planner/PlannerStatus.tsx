@@ -1,3 +1,5 @@
+import { Loader2 } from "lucide-react";
+
 import type {
   PlannerState,
   PlannerStateSnapshot,
@@ -36,7 +38,7 @@ export const PlannerStatus = ({
     <section
       data-planner-state={snapshot.state}
       aria-labelledby="planner-status-heading"
-      className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="min-w-0 px-1 py-1"
     >
       <p className="text-[11px] font-bold tracking-[0.16em] text-slate-400 uppercase">
         STATUS PERJALANAN
@@ -44,14 +46,17 @@ export const PlannerStatus = ({
       <h2
         id="planner-status-heading"
         tabIndex={-1}
-        className="mt-1 text-base font-bold break-words text-slate-950"
+        className="mt-1 flex items-center gap-2 text-base font-bold break-words text-slate-900"
       >
-        {STATE_LABELS[snapshot.state]}
+        {snapshot.state === "loading" && (
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-600" />
+        )}
+        <span>{STATE_LABELS[snapshot.state]}</span>
       </h2>
       <p
         role="status"
         aria-live="polite"
-        className="mt-1 text-sm leading-5 break-words text-slate-700"
+        className="mt-0.5 text-xs leading-5 break-words text-slate-600"
       >
         {detail}
       </p>
@@ -82,9 +87,13 @@ export const PlannerStatus = ({
 };
 
 function getPrimaryLabel(snapshot: PlannerStateSnapshot): string | undefined {
-  if (snapshot.state === "idle") return "Pilih lokasi";
-  if (snapshot.state === "loading") return "Ubah pilihan";
-  if (snapshot.state === "ready") return "Cari rute";
+  if (
+    snapshot.state === "idle" ||
+    snapshot.state === "loading" ||
+    snapshot.state === "ready"
+  ) {
+    return undefined;
+  }
   if (snapshot.state === "error" || snapshot.state === "stale-data") {
     return snapshot.retryAvailable ? "Coba lagi" : "Ubah pilihan";
   }
@@ -99,12 +108,12 @@ function getStatusMessage(snapshot: PlannerStateSnapshot): string {
       return "Tentukan asal dan tujuan untuk mulai.";
     case "select":
       return snapshot.catalog
-        ? "Pilih asal, tujuan, dan waktu keberangkatan."
+        ? "Pilih asal dan tujuan untuk melihat rute."
         : "Menyiapkan data halte lokal…";
     case "ready":
       return "Asal, tujuan, dan waktu sudah siap.";
     case "loading":
-      return "Pilihan tetap tersimpan selama rute dihitung.";
+      return "Mencari perjalanan terbaik untuk Anda…";
     case "no-route":
       return "Tidak ada perjalanan yang cocok pada input ini.";
     case "error":

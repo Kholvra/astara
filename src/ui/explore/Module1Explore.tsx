@@ -1,6 +1,20 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
+import {
+  ArrowUpDown,
+  ChevronRight,
+  Landmark,
+  RotateCcw,
+  ShoppingBag,
+  Trophy,
+} from "lucide-react";
 
 import type {
   CurrentLocationReading,
@@ -8,25 +22,34 @@ import type {
   SearchContext,
 } from "~/core/search/search.types";
 import { LocationButton } from "~/ui/map/LocationButton";
-import { SearchTrustBlock } from "./SearchTrustBlock";
 import type { LocationRequestFailure } from "~/ui/map/locationReader";
 
 export type DestinationItem = {
   id: string;
   name: string;
-  icon: string;
+  icon: ReactNode;
   query: string;
 };
 
 export const POPULAR_DESTINATIONS: readonly DestinationItem[] = [
-  { id: "monas", name: "Monas", icon: "🏛️", query: "Monas" },
+  {
+    id: "monas",
+    name: "Monas",
+    icon: <Landmark className="h-3.5 w-3.5 text-slate-700" />,
+    query: "Monas",
+  },
   {
     id: "gi",
     name: "Grand Indonesia",
-    icon: "🛍️",
+    icon: <ShoppingBag className="h-3.5 w-3.5 text-slate-700" />,
     query: "Grand Indonesia",
   },
-  { id: "gbk", name: "GBK", icon: "🏟️", query: "GBK" },
+  {
+    id: "gbk",
+    name: "GBK",
+    icon: <Trophy className="h-3.5 w-3.5 text-slate-700" />,
+    query: "GBK",
+  },
 ];
 
 type Module1Props = {
@@ -49,8 +72,8 @@ type Module1Props = {
   onSwap?: () => void;
   origin?: RoutableLocation | null;
   planEnabled?: boolean;
-  timingControls?: React.ReactNode;
-  children?: React.ReactNode;
+  timingControls?: ReactNode;
+  children?: ReactNode;
 };
 
 export const Module1Explore = ({
@@ -62,7 +85,7 @@ export const Module1Explore = ({
   locationRequestKey,
   onOpenSearch,
   onSelectDestination,
-  onPlan,
+  onPlan: _onPlan,
   onReset,
   onSwap,
   origin,
@@ -80,7 +103,7 @@ export const Module1Explore = ({
     }
   }, [planEnabled]);
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+  const handlePointerDown = (e: PointerEvent<HTMLButtonElement>) => {
     dragStartYRef.current = e.clientY;
     dragMovedRef.current = false;
     try {
@@ -90,7 +113,7 @@ export const Module1Explore = ({
     }
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+  const handlePointerMove = (e: PointerEvent<HTMLButtonElement>) => {
     if (dragStartYRef.current === null) return;
     const deltaY = e.clientY - dragStartYRef.current;
     if (Math.abs(deltaY) > 8) {
@@ -98,7 +121,7 @@ export const Module1Explore = ({
     }
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+  const handlePointerUp = (e: PointerEvent<HTMLButtonElement>) => {
     if (dragStartYRef.current === null) return;
     const deltaY = e.clientY - dragStartYRef.current;
     dragStartYRef.current = null;
@@ -123,31 +146,58 @@ export const Module1Explore = ({
 
       <header className="absolute top-6 right-0 left-0 z-20 px-4 sm:top-11">
         <div className="rounded-[28px] border border-slate-100/90 bg-white/95 p-3 shadow-lg backdrop-blur-md">
-          <div className="mb-2 px-1 text-[11px] font-bold tracking-[0.16em] text-slate-400 uppercase">
-            RENCANA PERJALANAN
+          <div className="mb-2 flex items-center justify-between px-1">
+            <span className="text-[11px] font-bold tracking-[0.16em] text-slate-400 uppercase">
+              RENCANA PERJALANAN
+            </span>
+            {onReset && (origin || destination) ? (
+              <button
+                type="button"
+                onClick={onReset}
+                className="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none active:scale-95"
+                title="Reset pilihan asal dan tujuan"
+              >
+                <RotateCcw className="h-3 w-3" />
+                <span>Reset</span>
+              </button>
+            ) : null}
           </div>
-          <div className="grid gap-2">
-            <EndpointField
-              context="origin"
-              location={origin}
-              active={activeContext === "origin"}
-              onClick={() => onOpenSearch("origin")}
-            />
-            <EndpointField
-              context="destination"
-              location={destination}
-              active={activeContext === "destination"}
-              onClick={() => onOpenSearch("destination")}
-            />
+          <div className="relative grid gap-2">
+            <div className={onSwap ? "pr-11" : ""}>
+              <EndpointField
+                context="origin"
+                location={origin}
+                active={activeContext === "origin"}
+                onClick={() => onOpenSearch("origin")}
+              />
+            </div>
+            <div className={onSwap ? "pr-11" : ""}>
+              <EndpointField
+                context="destination"
+                location={destination}
+                active={activeContext === "destination"}
+                onClick={() => onOpenSearch("destination")}
+              />
+            </div>
+            {onSwap && (
+              <button
+                type="button"
+                onClick={onSwap}
+                disabled={!origin && !destination}
+                aria-label="Tukar asal dan tujuan"
+                title="Tukar asal dan tujuan"
+                className="absolute right-1 top-1/2 -translate-y-1/2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-xs transition-all hover:bg-slate-50 hover:text-emerald-700 active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-slate-600 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+              >
+                <ArrowUpDown className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </header>
 
       <div
         id="explore-bottom-sheet-container"
-        className={`absolute right-0 bottom-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out ${
-          isExpanded ? "max-h-[calc(100%-236px)]" : "max-h-[175px]"
-        }`}
+        className="absolute right-0 bottom-0 left-0 z-30 flex max-h-[calc(100%-236px)] flex-col transition-all duration-300 ease-in-out"
       >
         <div className="relative w-full">
           <div className="absolute right-4 -top-14 z-30">
@@ -162,7 +212,7 @@ export const Module1Explore = ({
 
         <section
           id="explore-bottom-sheet"
-          className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-t-[32px] border-t border-slate-100 bg-white px-5 pt-2.5 pb-8 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] sm:pb-10"
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-t-[32px] border-t border-slate-100 bg-white px-5 pt-2.5 pb-6 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] [scrollbar-width:none] [-ms-overflow-style:none] sm:pb-8 [&::-webkit-scrollbar]:hidden"
         >
           <button
             type="button"
@@ -181,17 +231,8 @@ export const Module1Explore = ({
             <span className="h-1.5 w-12 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-400" />
           </button>
 
-          <div className="flex items-center justify-between pb-2">
-            <div className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-              TUJUAN POPULER
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsExpanded((prev) => !prev)}
-              className="cursor-pointer text-[11px] font-semibold text-emerald-700 hover:text-emerald-800"
-            >
-              {isExpanded ? "Tutup detail" : "Lihat opsi & waktu"}
-            </button>
+          <div className="mb-2.5 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+            TUJUAN POPULER
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 pb-3">
@@ -219,57 +260,19 @@ export const Module1Explore = ({
             </p>
           )}
 
-          {isExpanded && (
-            <>
+          <div
+            className={`grid transition-all duration-300 ease-in-out ${
+              isExpanded
+                ? "grid-rows-[1fr] opacity-100"
+                : "grid-rows-[0fr] opacity-0 pointer-events-none"
+            }`}
+          >
+            <div className="min-h-0 overflow-hidden">
               {timingControls ? (
                 <div className="mt-1">{timingControls}</div>
               ) : null}
-
-              {(onPlan ?? onReset ?? onSwap) && (
-                <div className="mt-3 grid grid-cols-1 gap-2">
-                  {onPlan && (
-                    <button
-                      type="button"
-                      onClick={onPlan}
-                      disabled={!planEnabled}
-                      className="min-h-11 w-full rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300"
-                    >
-                      Cari rute
-                    </button>
-                  )}
-                  <div className="grid grid-cols-2 gap-2">
-                    {onSwap && (
-                      <button
-                        type="button"
-                        onClick={onSwap}
-                        disabled={!origin || !destination}
-                        className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:text-slate-300"
-                      >
-                        Tukar arah
-                      </button>
-                    )}
-                    {onReset && (
-                      <button
-                        type="button"
-                        onClick={onReset}
-                        className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-                      >
-                        Reset
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <p className="mt-2 text-[11px] leading-4 text-slate-500">
-                {activeContext === "origin"
-                  ? "Pilih asal perjalanan, lalu tentukan tujuan."
-                  : "Pilih tujuan perjalanan dari hasil lokal yang tersedia."}
-              </p>
-            </>
-          )}
-
-          <div className="mx-auto mt-3 h-1 w-32 shrink-0 rounded-full bg-slate-900/25" />
+            </div>
+          </div>
         </section>
       </div>
     </div>
@@ -299,11 +302,11 @@ const EndpointField = ({
       type="button"
       onClick={onClick}
       aria-label={`${label}: ${location?.name ?? placeholder}`}
-      className={`flex min-h-14 w-full items-start gap-3 rounded-2xl border px-3.5 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${active ? "border-emerald-400 bg-emerald-50/60" : "border-slate-200 bg-white hover:border-emerald-200"}`}
+      className={`flex min-h-14 w-full items-center gap-3 rounded-2xl border px-3.5 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${active ? "border-emerald-400 bg-emerald-50/60" : "border-slate-200 bg-white hover:border-emerald-200"}`}
     >
       <span
         aria-hidden="true"
-        className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${context === "origin" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-700"}`}
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${context === "origin" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-700"}`}
       >
         {context === "origin" ? "A" : "T"}
       </span>
@@ -314,22 +317,16 @@ const EndpointField = ({
         <span className="block text-sm leading-5 font-semibold break-words text-slate-900">
           {location?.name ?? placeholder}
         </span>
-        {location ? (
-          <SearchTrustBlock
-            source={location.source}
-            confidence={location.confidence}
-            verification={location.verification}
-            distanceBasis={location.distanceBasis}
-          />
-        ) : (
+        {!location && (
           <span className="block text-[11px] leading-4 text-slate-400">
             Cari halte, rute, atau tempat
           </span>
         )}
       </span>
-      <span className="mt-2 shrink-0 text-slate-400" aria-hidden="true">
-        →
-      </span>
+      <ChevronRight
+        className="h-4 w-4 shrink-0 text-slate-400"
+        aria-hidden="true"
+      />
     </button>
   );
 };
