@@ -288,4 +288,95 @@ describe("planner service", () => {
       MAX_TRANSFER_EDGE_CANDIDATES,
     );
   });
+
+  it("plans a route when origin and destination are parent stations", async () => {
+    const base = makeSnapshot();
+    const lineage = base.stops[0]?.lineage;
+    if (!lineage) throw new Error("Fixture lineage missing");
+
+    const stops: typeof base.stops = [
+      {
+        id: "station-origin",
+        name: "Origin Station",
+        coordinate: [106.8, -6.2],
+        locationType: 1,
+        lineage: { ...lineage, rowNumber: 10 },
+      },
+      {
+        id: "platform-origin",
+        name: "Origin Platform",
+        coordinate: [106.8, -6.2],
+        locationType: 0,
+        parentStationId: "station-origin",
+        lineage: { ...lineage, rowNumber: 11 },
+      },
+      {
+        id: "station-destination",
+        name: "Destination Station",
+        coordinate: [106.81, -6.19],
+        locationType: 1,
+        lineage: { ...lineage, rowNumber: 12 },
+      },
+      {
+        id: "platform-destination",
+        name: "Destination Platform",
+        coordinate: [106.81, -6.19],
+        locationType: 0,
+        parentStationId: "station-destination",
+        lineage: { ...lineage, rowNumber: 13 },
+      },
+    ];
+
+    const stopTimes = [
+      {
+        ...base.stopTimes[0]!,
+        stopId: "platform-origin",
+        departureTime: parseGtfsTime("08:05:00"),
+        arrivalTime: parseGtfsTime("08:05:00"),
+      },
+      {
+        ...base.stopTimes[1]!,
+        stopId: "platform-destination",
+        departureTime: parseGtfsTime("08:25:00"),
+        arrivalTime: parseGtfsTime("08:25:00"),
+      },
+    ];
+
+    const snapshot = {
+      ...base,
+      stops,
+      stopTimes,
+    };
+
+    const service = createPlannerService({
+      repository: {
+        getActiveSnapshot: async () => snapshot,
+        getActiveStatusFacts: async () =>
+          statusFacts(snapshot.metadata.snapshotId),
+      },
+      policy,
+      now: () => "2026-09-10T01:00:00.000Z",
+    });
+
+    const catalogResult = await service.getCatalog();
+    if (catalogResult.state !== "success") throw new Error("catalog failed");
+
+    const result = await service.planRoute({
+      originId: "station-origin",
+      destinationId: "station-destination",
+      departAt: {
+        mode: "depart-at",
+        localDate: "2026-09-11",
+        localTime: "08:00",
+        timezone: "Asia/Jakarta",
+      },
+      snapshotId: snapshot.metadata.snapshotId,
+      configurationHash: catalogResult.catalog.configurationHash,
+    });
+
+    expect(result.state).toBe("success");
+    if (result.state !== "success") throw new Error("route failed");
+    expect(result.result.primary.originStopId).toBe("station-origin");
+    expect(result.result.primary.destinationStopId).toBe("station-destination");
+  });
 });

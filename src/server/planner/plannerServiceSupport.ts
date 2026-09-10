@@ -146,9 +146,11 @@ export function createTransferEdges(
     current.push(stop.id);
     byParent.set(stop.parentStationId, current);
   }
-  for (const stopIds of byParent.values()) {
+  for (const [parentId, stopIds] of byParent.entries()) {
     const bounded = [...new Set(stopIds)].slice(0, 40);
     for (const from of bounded) {
+      addPair(parentId, from);
+      addPair(from, parentId);
       for (const to of bounded) addPair(from, to);
     }
   }

@@ -285,4 +285,8 @@ export type RouteEngineIndex = Readonly<{
     string,
     readonly GtfsSnapshot["frequencies"][number][]
   >;
+  tripsByStopId: ReadonlyMap<
+    string,
+    readonly GtfsSnapshot["trips"][number][]
+  >;
 }>;
