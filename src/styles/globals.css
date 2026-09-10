@@ -1,5 +1,10 @@
 @import "tailwindcss";
 @import "maplibre-gl/dist/maplibre-gl.css";
+
+.astara-map .maplibregl-ctrl button {
+  min-width: 44px;
+  min-height: 44px;
+}
 @theme {
   --font-sans:
     var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,

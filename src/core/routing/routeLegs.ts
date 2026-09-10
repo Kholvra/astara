@@ -1,4 +1,5 @@
 import type { GtfsSnapshot } from "~/core/ingestion/gtfsTypes";
+import { sliceShapeBetweenStops } from "~/core/geojson/shapeSlicing";
 import type { TransferEdge } from "~/core/transfer/transferTypes";
 
 import type {
@@ -18,6 +19,8 @@ export function createTransitLeg(
     option.trip.shapeId,
     option.fromStopIndex + 1,
     option.toStopIndex + 1,
+    option.fromStopTime.stopId,
+    option.toStopTime.stopId,
     snapshot,
   );
   const timing: RouteLegTiming =
@@ -96,6 +99,8 @@ function createGeometryReference(
   shapeId: string | undefined,
   fromStopSequence: number,
   toStopSequence: number,
+  fromStopId: string,
+  toStopId: string,
   snapshot: GtfsSnapshot,
 ): RouteGeometryReference {
   const shapePoints = shapeId
@@ -103,10 +108,22 @@ function createGeometryReference(
         .filter((point) => point.shapeId === shapeId)
         .sort((left, right) => left.sequence - right.sequence)
     : [];
+
+  const fromStop = snapshot.stops.find((stop) => stop.id === fromStopId);
+  const toStop = snapshot.stops.find((stop) => stop.id === toStopId);
+  const slicedGeometry =
+    fromStop && toStop
+      ? sliceShapeBetweenStops({
+          points: shapePoints,
+          fromStop: fromStop.coordinate,
+          toStop: toStop.coordinate,
+        })
+      : { state: "unavailable" as const, coordinates: [] };
+
   return {
-    state: shapePoints.length > 0 ? "supported" : "unavailable",
+    state: slicedGeometry.state,
     ...(shapeId ? { shapeId } : {}),
-    coordinates: shapePoints.map((point) => point.coordinate),
+    coordinates: slicedGeometry.coordinates,
     fromStopSequence,
     toStopSequence,
   };
