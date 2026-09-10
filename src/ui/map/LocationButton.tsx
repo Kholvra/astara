@@ -1,50 +1,86 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-type LocationState = "idle" | "requesting" | "resolved" | "denied";
+import type {
+  CurrentLocationReading,
+  SearchContext,
+} from "~/core/search/search.types";
+import {
+  createLocationRequestController,
+  type LocationRequestController,
+  type LocationRequestFailure,
+} from "./locationReader";
 
-export function LocationButton({
+type LocationState = "idle" | "requesting" | "resolved" | "error";
+
+export type LocationButtonProps = {
+  context: SearchContext;
+  onLocationResolved?: (
+    context: SearchContext,
+    reading: CurrentLocationReading,
+  ) => void;
+  onLocationError?: (
+    context: SearchContext,
+    failure: LocationRequestFailure,
+  ) => void;
+};
+
+export const LocationButton = ({
+  context,
   onLocationResolved,
-}: {
-  onLocationResolved?: (coords: [number, number]) => void;
-}) {
+  onLocationError,
+}: LocationButtonProps) => {
   const [status, setStatus] = useState<LocationState>("idle");
+  const controllerRef = useRef<LocationRequestController | null>(null);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    controllerRef.current = createLocationRequestController(
+      typeof navigator === "undefined" ? undefined : navigator.geolocation,
+    );
+
+    return () => {
+      mountedRef.current = false;
+      controllerRef.current?.cancel();
+    };
+  }, []);
 
   const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      setStatus("denied");
-      return;
-    }
-
+    const controller =
+      controllerRef.current ??
+      createLocationRequestController(
+        typeof navigator === "undefined" ? undefined : navigator.geolocation,
+      );
+    controllerRef.current = controller;
     setStatus("requesting");
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const coords: [number, number] = [
-          position.coords.longitude,
-          position.coords.latitude,
-        ];
+    controller.start(
+      context,
+      (resolvedContext, reading) => {
+        if (!mountedRef.current) return;
         setStatus("resolved");
-        onLocationResolved?.(coords);
+        onLocationResolved?.(resolvedContext, reading);
       },
-      (_error) => {
-        setStatus("denied");
+      (failedContext, failure) => {
+        if (!mountedRef.current) return;
+        setStatus("error");
+        onLocationError?.(failedContext, failure);
       },
-      { enableHighAccuracy: true, timeout: 8000 },
     );
   };
+
+  const label = getLocationLabel(status, context);
 
   return (
     <button
       type="button"
       onClick={handleGetLocation}
       disabled={status === "requesting"}
-      aria-label={
-        status === "denied" ? "Akses lokasi ditolak" : "Gunakan Lokasiku"
-      }
-      title={status === "denied" ? "Akses lokasi ditolak" : "Gunakan Lokasiku"}
-      className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all hover:bg-slate-50 active:scale-95 disabled:opacity-50"
+      aria-label={label}
+      title={label}
+      className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-95 disabled:opacity-50"
     >
       {status === "requesting" ? (
         <svg
@@ -53,12 +89,12 @@ export function LocationButton({
           stroke="currentColor"
           strokeWidth="2"
           viewBox="0 0 24 24"
+          aria-hidden="true"
         >
           <circle cx="12" cy="12" r="8" strokeOpacity="0.2" />
           <path d="M12 4v4m0 8v4M4 12h4m8 0h4" strokeLinecap="round" />
         </svg>
       ) : (
-        /* Crosshair icon */
         <svg
           className="h-5 w-5 text-slate-700"
           fill="none"
@@ -67,6 +103,7 @@ export function LocationButton({
           strokeLinejoin="round"
           strokeWidth="2"
           viewBox="0 0 24 24"
+          aria-hidden="true"
         >
           <circle cx="12" cy="12" r="7" />
           <line x1="12" y1="2" x2="12" y2="5" />
@@ -78,4 +115,19 @@ export function LocationButton({
       )}
     </button>
   );
+};
+
+function getLocationLabel(
+  status: LocationState,
+  context: SearchContext,
+): string {
+  if (status === "requesting") return "Mencari lokasi…";
+  if (status === "error") return "Lokasi tidak tersedia. Coba lagi";
+  if (status === "resolved")
+    return `Lokasiku dipakai untuk ${getContextLabel(context)}`;
+  return `Gunakan Lokasiku sebagai ${getContextLabel(context)}`;
+}
+
+function getContextLabel(context: SearchContext): string {
+  return context === "origin" ? "asal" : "tujuan";
 }
