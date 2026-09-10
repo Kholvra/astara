@@ -2,11 +2,306 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-    provider = "prisma-client-js"
-    output   = "../generated/prisma"
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GtfsCoverage {
+  COMPLETE
+  LIMITED
+}
+
+enum GtfsValidationState {
+  ACCEPTED
+  REJECTED
+}
+
+enum GtfsIssueClassification {
+  BLOCKER
+  WARNING
+}
+
+enum GtfsPublicationOutcome {
+  PUBLISHED
+  FALLBACK
+  UNAVAILABLE
+}
+
+enum GtfsTimingSemantics {
+  EXACT
+  INTERVAL
+}
+
+model GtfsSnapshot {
+  snapshotId                 String                          @id
+  sourceUrl                  String                          @db.Text
+  acquiredAt                 String
+  contentHash                String
+  httpEtag                   String?
+  httpLastModified           String?
+  feedVersion                String?
+  serviceDate                String
+  coverage                   GtfsCoverage
+  limitations                String[]
+  rawStorageKey              String                          @db.Text
+  validationState            GtfsValidationState
+  validationCompletedAt      String
+  createdAt                  DateTime                        @default(now())
+  agencies                   GtfsAgency[]
+  routes                     GtfsRoute[]
+  stops                      GtfsStop[]
+  trips                      GtfsTrip[]
+  stopTimes                  GtfsStopTime[]
+  calendars                  GtfsCalendar[]
+  calendarDates              GtfsCalendarDate[]
+  frequencies                GtfsFrequency[]
+  transfers                  GtfsTransfer[]
+  shapes                     GtfsShapePoint[]
+  fareAttributes             GtfsFareAttribute[]
+  fareRules                  GtfsFareRule[]
+  validationIssues           GtfsValidationIssue[]
+  publicationDecisions       GtfsPublicationDecision[]       @relation("CandidatePublication")
+  activePointer              GtfsActiveSnapshot?
+  accessEvidenceAssociations GtfsAccessEvidenceAssociation[]
+
+  @@index([contentHash])
+  @@index([validationState])
+}
+
+model GtfsAgency {
+  snapshotId       String
+  agencyId         String
+  name             String
+  url              String
+  timezone         String
+  lineageFileName  String
+  lineageRowNumber Int
+  snapshot         GtfsSnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@id([snapshotId, agencyId])
+}
+
+model GtfsRoute {
+  snapshotId       String
+  routeId          String
+  agencyId         String
+  shortName        String
+  longName         String
+  routeType        Int
+  lineageFileName  String
+  lineageRowNumber Int
+  snapshot         GtfsSnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@id([snapshotId, routeId])
+  @@index([snapshotId, agencyId])
+}
+
+model GtfsStop {
+  snapshotId       String
+  stopId           String
+  name             String
+  latitude         Float
+  longitude        Float
+  stopCode         String?
+  locationType     Int?
+  parentStationId  String?
+  lineageFileName  String
+  lineageRowNumber Int
+  snapshot         GtfsSnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@id([snapshotId, stopId])
+  @@index([snapshotId, parentStationId])
+}
+
+model GtfsTrip {
+  snapshotId       String
+  tripId           String
+  routeId          String
+  serviceId        String
+  headsign         String?
+  directionId      Int?
+  shapeId          String?
+  lineageFileName  String
+  lineageRowNumber Int
+  snapshot         GtfsSnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@id([snapshotId, tripId])
+  @@index([snapshotId, routeId])
+  @@index([snapshotId, serviceId])
+}
+
+model GtfsStopTime {
+  snapshotId           String
+  tripId               String
+  stopSequence         Int
+  stopId               String
+  arrivalTimeRaw       String
+  arrivalTimeSeconds   Int
+  departureTimeRaw     String
+  departureTimeSeconds Int
+  timepoint            Int?
+  lineageFileName      String
+  lineageRowNumber     Int
+  snapshot             GtfsSnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@id([snapshotId, tripId, stopSequence])
+  @@index([snapshotId, stopId])
+}
+
+model GtfsCalendar {
+  snapshotId       String
+  serviceId        String
+  monday           Boolean
+  tuesday          Boolean
+  wednesday        Boolean
+  thursday         Boolean
+  friday           Boolean
+  saturday         Boolean
+  sunday           Boolean
+  startDate        String
+  endDate          String
+  lineageFileName  String
+  lineageRowNumber Int
+  snapshot         GtfsSnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@id([snapshotId, serviceId])
+}
+
+model GtfsCalendarDate {
+  snapshotId       String
+  serviceId        String
+  date             String
+  exceptionType    Int
+  lineageFileName  String
+  lineageRowNumber Int
+  snapshot         GtfsSnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@id([snapshotId, serviceId, date])
+}
+
+model GtfsFrequency {
+  snapshotId       String
+  tripId           String
+  startTimeRaw     String
+  startTimeSeconds Int
+  endTimeRaw       String
+  endTimeSeconds   Int
+  headwaySeconds   Int
+  timingSemantics  GtfsTimingSemantics
+  lineageFileName  String
+  lineageRowNumber Int
+  snapshot         GtfsSnapshot        @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@id([snapshotId, lineageRowNumber])
+  @@index([snapshotId, tripId])
+}
+
+model GtfsTransfer {
+  snapshotId                 String
+  lineageRowNumber           Int
+  fromStopId                 String
+  toStopId                   String
+  transferType               Int
+  minimumTransferTimeSeconds Int?
+  lineageFileName            String
+  snapshot                   GtfsSnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@id([snapshotId, lineageRowNumber])
+  @@index([snapshotId, fromStopId])
+  @@index([snapshotId, toStopId])
+}
+
+model GtfsShapePoint {
+  snapshotId       String
+  shapeId          String
+  sequence         Int
+  latitude         Float
+  longitude        Float
+  lineageFileName  String
+  lineageRowNumber Int
+  snapshot         GtfsSnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@id([snapshotId, shapeId, sequence])
+  @@index([snapshotId, shapeId])
+}
+
+model GtfsFareAttribute {
+  snapshotId              String
+  fareId                  String
+  price                   Float
+  currencyType            String
+  paymentMethod           Int
+  transfers               Int?
+  agencyId                String?
+  transferDurationSeconds Int?
+  lineageFileName         String
+  lineageRowNumber        Int
+  snapshot                GtfsSnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@id([snapshotId, fareId])
+}
+
+model GtfsFareRule {
+  snapshotId       String
+  lineageRowNumber Int
+  fareId           String
+  routeId          String?
+  originId         String?
+  destinationId    String?
+  containsId       String?
+  lineageFileName  String
+  snapshot         GtfsSnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@id([snapshotId, lineageRowNumber])
+  @@index([snapshotId, fareId])
+  @@index([snapshotId, routeId])
+}
+
+model GtfsValidationIssue {
+  snapshotId     String
+  issueIndex     Int
+  code           String
+  classification GtfsIssueClassification
+  message        String                  @db.Text
+  fileName       String?
+  rowNumber      Int?
+  fieldName      String?
+  snapshot       GtfsSnapshot            @relation(fields: [snapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@id([snapshotId, issueIndex])
+  @@index([snapshotId, code])
+}
+
+model GtfsPublicationDecision {
+  id                  String                 @id @default(cuid())
+  candidateSnapshotId String
+  outcome             GtfsPublicationOutcome
+  activeSnapshotId    String?
+  decidedAt           DateTime
+  operatorReason      String?                @db.Text
+  candidateSnapshot   GtfsSnapshot           @relation("CandidatePublication", fields: [candidateSnapshotId], references: [snapshotId], onDelete: Cascade)
+
+  @@index([candidateSnapshotId, decidedAt])
+  @@index([activeSnapshotId])
+}
+
+model GtfsActiveSnapshot {
+  slot        Int          @id @default(1)
+  snapshotId  String       @unique
+  activatedAt DateTime
+  snapshot    GtfsSnapshot @relation(fields: [snapshotId], references: [snapshotId], onDelete: Restrict)
+}
+
+model GtfsAccessEvidenceAssociation {
+  evidenceVersionId String       @id
+  transitSnapshotId String
+  recordedAt        DateTime
+  snapshot          GtfsSnapshot @relation(fields: [transitSnapshotId], references: [snapshotId], onDelete: Restrict)
+
+  @@index([transitSnapshotId, recordedAt])
 }
