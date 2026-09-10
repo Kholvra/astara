@@ -204,6 +204,10 @@ describe("route-card view model", () => {
         coverage: "complete",
         freshness: "current",
       },
+      geometry: {
+        ...completeTransfer.primary.geometry,
+        state: "supported",
+      },
       legs: completeTransfer.primary.legs.map((leg) =>
         leg.kind === "walking"
           ? { ...leg, evidenceState: "Terverifikasi" as const }
