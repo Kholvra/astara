@@ -245,7 +245,6 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
       <PlannerStatus
         snapshot={snapshot}
         onPrimaryAction={handlePrimaryStatusAction}
-        onReset={handleReset}
       />
       <TripTimingControls
         validation={timingValidation}

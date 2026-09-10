@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import type {
   CurrentLocationReading,
@@ -70,6 +70,53 @@ export const Module1Explore = ({
   timingControls,
   children,
 }: Module1Props) => {
+  const [isExpanded, setIsExpanded] = useState(planEnabled);
+  const dragStartYRef = useRef<number | null>(null);
+  const dragMovedRef = useRef(false);
+
+  useEffect(() => {
+    if (planEnabled) {
+      setIsExpanded(true);
+    }
+  }, [planEnabled]);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    dragStartYRef.current = e.clientY;
+    dragMovedRef.current = false;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (dragStartYRef.current === null) return;
+    const deltaY = e.clientY - dragStartYRef.current;
+    if (Math.abs(deltaY) > 8) {
+      dragMovedRef.current = true;
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (dragStartYRef.current === null) return;
+    const deltaY = e.clientY - dragStartYRef.current;
+    dragStartYRef.current = null;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+
+    if (deltaY > 30) {
+      setIsExpanded(false);
+    } else if (deltaY < -30) {
+      setIsExpanded(true);
+    } else if (!dragMovedRef.current) {
+      setIsExpanded((prev) => !prev);
+    }
+  };
+
   return (
     <div className="relative h-full w-full overflow-hidden bg-slate-100 font-sans">
       <div className="absolute inset-0 z-0 h-full w-full">{children}</div>
@@ -96,94 +143,135 @@ export const Module1Explore = ({
         </div>
       </header>
 
-      <div className="absolute right-4 bottom-[232px] z-20">
-        <LocationButton
-          context={activeContext}
-          requestKey={locationRequestKey}
-          onLocationResolved={onLocateUser}
-          onLocationError={onLocationError}
-        />
-      </div>
-
-      <section
-        id="explore-bottom-sheet"
-        className="absolute right-0 bottom-0 left-0 z-30 max-h-[78%] overflow-y-auto rounded-t-[32px] border-t border-slate-100 bg-white px-5 pt-2.5 pb-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]"
+      <div
+        id="explore-bottom-sheet-container"
+        className={`absolute right-0 bottom-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out ${
+          isExpanded ? "max-h-[calc(100%-236px)]" : "max-h-[175px]"
+        }`}
       >
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300" />
-
-        <div className="mb-2.5 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-          TUJUAN POPULER
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5 pb-3">
-          {POPULAR_DESTINATIONS.map((destinationItem) => (
-            <button
-              key={destinationItem.id}
-              id={`chip-${destinationItem.id}`}
-              type="button"
-              onClick={() => onSelectDestination(destinationItem.query)}
-              className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 shadow-xs transition-all hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-95"
-            >
-              <span aria-hidden="true">{destinationItem.icon}</span>
-              <span>{destinationItem.name}</span>
-            </button>
-          ))}
-        </div>
-
-        {locationMessage && (
-          <p
-            className="mb-2 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800"
-            role="status"
-            aria-live="polite"
-          >
-            {locationMessage}
-          </p>
-        )}
-
-        {timingControls ? <div className="mt-3">{timingControls}</div> : null}
-
-        {(onPlan ?? onReset ?? onSwap) && (
-          <div className="mt-3 grid grid-cols-1 gap-2">
-            {onPlan && (
-              <button
-                type="button"
-                onClick={onPlan}
-                disabled={!planEnabled}
-                className="min-h-11 w-full rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300"
-              >
-                Cari rute
-              </button>
-            )}
-            <div className="grid grid-cols-2 gap-2">
-              {onSwap && (
-                <button
-                  type="button"
-                  onClick={onSwap}
-                  disabled={!origin || !destination}
-                  className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:text-slate-300"
-                >
-                  Tukar arah
-                </button>
-              )}
-              {onReset && (
-                <button
-                  type="button"
-                  onClick={onReset}
-                  className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-                >
-                  Reset
-                </button>
-              )}
-            </div>
+        <div className="relative w-full">
+          <div className="absolute right-4 -top-14 z-30">
+            <LocationButton
+              context={activeContext}
+              requestKey={locationRequestKey}
+              onLocationResolved={onLocateUser}
+              onLocationError={onLocationError}
+            />
           </div>
-        )}
+        </div>
 
-        <p className="text-[11px] leading-4 text-slate-500">
-          {activeContext === "origin"
-            ? "Pilih asal perjalanan, lalu tentukan tujuan."
-            : "Pilih tujuan perjalanan dari hasil lokal yang tersedia."}
-        </p>
-        <div className="mx-auto mt-3 h-1 w-32 rounded-full bg-slate-900/25" />
-      </section>
+        <section
+          id="explore-bottom-sheet"
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-t-[32px] border-t border-slate-100 bg-white px-5 pt-2.5 pb-8 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] sm:pb-10"
+        >
+          <button
+            type="button"
+            aria-expanded={isExpanded}
+            aria-controls="explore-bottom-sheet"
+            aria-label={
+              isExpanded
+                ? "Tutup detail rencana perjalanan"
+                : "Buka detail rencana perjalanan"
+            }
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            className="group mx-auto -mt-1 mb-2.5 flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing focus:outline-none"
+          >
+            <span className="h-1.5 w-12 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-400" />
+          </button>
+
+          <div className="flex items-center justify-between pb-2">
+            <div className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+              TUJUAN POPULER
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              className="cursor-pointer text-[11px] font-semibold text-emerald-700 hover:text-emerald-800"
+            >
+              {isExpanded ? "Tutup detail" : "Lihat opsi & waktu"}
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 pb-3">
+            {POPULAR_DESTINATIONS.map((destinationItem) => (
+              <button
+                key={destinationItem.id}
+                id={`chip-${destinationItem.id}`}
+                type="button"
+                onClick={() => onSelectDestination(destinationItem.query)}
+                className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 shadow-xs transition-all hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-95"
+              >
+                <span aria-hidden="true">{destinationItem.icon}</span>
+                <span>{destinationItem.name}</span>
+              </button>
+            ))}
+          </div>
+
+          {locationMessage && (
+            <p
+              className="mb-2 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800"
+              role="status"
+              aria-live="polite"
+            >
+              {locationMessage}
+            </p>
+          )}
+
+          {isExpanded && (
+            <>
+              {timingControls ? (
+                <div className="mt-1">{timingControls}</div>
+              ) : null}
+
+              {(onPlan ?? onReset ?? onSwap) && (
+                <div className="mt-3 grid grid-cols-1 gap-2">
+                  {onPlan && (
+                    <button
+                      type="button"
+                      onClick={onPlan}
+                      disabled={!planEnabled}
+                      className="min-h-11 w-full rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    >
+                      Cari rute
+                    </button>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    {onSwap && (
+                      <button
+                        type="button"
+                        onClick={onSwap}
+                        disabled={!origin || !destination}
+                        className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:text-slate-300"
+                      >
+                        Tukar arah
+                      </button>
+                    )}
+                    {onReset && (
+                      <button
+                        type="button"
+                        onClick={onReset}
+                        className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <p className="mt-2 text-[11px] leading-4 text-slate-500">
+                {activeContext === "origin"
+                  ? "Pilih asal perjalanan, lalu tentukan tujuan."
+                  : "Pilih tujuan perjalanan dari hasil lokal yang tersedia."}
+              </p>
+            </>
+          )}
+
+          <div className="mx-auto mt-3 h-1 w-32 shrink-0 rounded-full bg-slate-900/25" />
+        </section>
+      </div>
     </div>
   );
 };
