@@ -40,6 +40,12 @@ export type GtfsSnapshotMetadata = Readonly<{
   feedVersion?: string;
 }>;
 
+export type GtfsAccessEvidenceAssociation = Readonly<{
+  evidenceVersionId: string;
+  transitSnapshotId: string;
+  recordedAt: string;
+}>;
+
 export type GtfsValidationConfig = Readonly<{
   serviceDate: string;
   approvedSourceHosts: readonly string[];
@@ -206,6 +212,16 @@ export type GtfsValidationResult = Readonly<{
   limitations: readonly string[];
 }>;
 
+export type GtfsStatusFacts = Readonly<{
+  metadata: GtfsSnapshotMetadata;
+  serviceDate: string;
+  coverage: GtfsCoverage;
+  limitations: readonly string[];
+  hasIntervalFrequencies: boolean;
+  hasShapeGeometry: boolean;
+  accessEvidence?: GtfsAccessEvidenceAssociation;
+}>;
+
 export type NetworkAvailability = "available" | "unavailable";
 export type Freshness = "current" | "aging" | "stale" | "unknown";
 export type EvidenceState =
@@ -222,6 +238,8 @@ export type GtfsConsumerStatus = Readonly<{
   timingSemantics: "exact" | "interval" | "estimate" | "unavailable";
   geometryState: GeometryState;
   activeSnapshotId?: string;
+  accessEvidenceVersionId?: string;
+  accessEvidenceTransitSnapshotId?: string;
   limitations: readonly string[];
   staticDemoNote?: string;
   operatorReason?: string;

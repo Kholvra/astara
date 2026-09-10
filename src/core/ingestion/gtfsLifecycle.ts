@@ -1,3 +1,4 @@
+import { evaluateGtfsAccessEvidence } from "./gtfsEvidence";
 import { isBlockingIssue } from "./gtfsValidation";
 import {
   isAcceptedWarningCode,
@@ -5,6 +6,7 @@ import {
   type FreshnessPolicy,
   type GtfsConsumerStatus,
   type GtfsSnapshot,
+  type GtfsStatusFacts,
   type GtfsValidationIssue,
   type GtfsValidationResult,
   type PublicationDecision,
@@ -41,12 +43,36 @@ export function decidePublication(
   now: string,
   policy: FreshnessPolicy,
 ): PublicationDecision {
-  const candidateIsPublishable =
+  const decision = decidePublicationFromStatusFacts(
+    candidate,
+    current ? statusFactsFromSnapshot(current) : undefined,
+    now,
+    policy,
+  );
+
+  if (decision.outcome === "fallback" && current) {
+    return { ...decision, activeSnapshot: current };
+  }
+  return decision;
+}
+
+export function isPublishableGtfsCandidate(
+  candidate: GtfsValidationResult,
+): boolean {
+  return (
     candidate.accepted &&
     candidate.snapshot !== undefined &&
-    !candidate.issues.some(isBlockingIssue);
+    !candidate.issues.some(isBlockingIssue)
+  );
+}
 
-  if (candidateIsPublishable) {
+export function decidePublicationFromStatusFacts(
+  candidate: GtfsValidationResult,
+  current: GtfsStatusFacts | undefined,
+  now: string,
+  policy: FreshnessPolicy,
+): PublicationDecision {
+  if (isPublishableGtfsCandidate(candidate)) {
     const snapshot = candidate.snapshot;
     if (!snapshot) {
       return unavailableDecision(
@@ -55,7 +81,11 @@ export function decidePublication(
       );
     }
 
-    const status = createStatus(snapshot, now, policy);
+    const status = getGtfsConsumerStatus(
+      statusFactsFromSnapshot(snapshot),
+      now,
+      policy,
+    );
     if (status.freshness === "stale" && !isStaleDemoPermitted(policy)) {
       return unavailableDecision(
         candidate,
@@ -80,7 +110,7 @@ export function decidePublication(
     );
   }
 
-  const currentStatus = createStatus(current, now, policy);
+  const currentStatus = getGtfsConsumerStatus(current, now, policy);
   if (currentStatus.freshness === "stale" && !isStaleDemoPermitted(policy)) {
     return {
       outcome: "unavailable",
@@ -98,43 +128,58 @@ export function decidePublication(
 
   return {
     outcome: "fallback",
-    activeSnapshot: current,
     rejectedCandidateId: candidate.candidateSnapshotId,
     rejectionIssues,
     status: currentStatus,
   };
 }
 
-function createStatus(
-  snapshot: GtfsSnapshot,
+export function getGtfsConsumerStatus(
+  facts: GtfsStatusFacts,
   now: string,
   policy: FreshnessPolicy,
 ): GtfsConsumerStatus {
-  const freshness = classifyFreshness(
-    snapshot.metadata.acquiredAt,
-    now,
-    policy,
+  const freshness = classifyFreshness(facts.metadata.acquiredAt, now, policy);
+  const accessEvidence = evaluateGtfsAccessEvidence(
+    facts.metadata.snapshotId,
+    facts.accessEvidence,
   );
   const staticDemoNote =
     freshness === "stale" && isStaleDemoPermitted(policy)
       ? policy.staleDemoNote
       : undefined;
+  const staleUseBlocked =
+    freshness === "stale" && !isStaleDemoPermitted(policy);
 
   return {
-    networkAvailability: "available",
+    networkAvailability: staleUseBlocked ? "unavailable" : "available",
     freshness,
-    coverage: snapshot.coverage,
-    evidenceState: "Unknown",
+    coverage: facts.coverage,
+    evidenceState: accessEvidence.evidenceState,
     connectionState: "no-edge",
-    timingSemantics: snapshot.frequencies.some(
-      (frequency) => frequency.timingSemantics === "interval",
-    )
-      ? "interval"
-      : "exact",
-    geometryState: snapshot.shapes.length > 0 ? "supported" : "limited",
-    activeSnapshotId: snapshot.metadata.snapshotId,
-    limitations: snapshot.limitations,
+    timingSemantics: facts.hasIntervalFrequencies ? "interval" : "exact",
+    geometryState: facts.hasShapeGeometry ? "supported" : "limited",
+    activeSnapshotId: staleUseBlocked ? undefined : facts.metadata.snapshotId,
+    accessEvidenceVersionId: accessEvidence.evidenceVersionId,
+    accessEvidenceTransitSnapshotId: accessEvidence.transitSnapshotId,
+    limitations: facts.limitations,
     staticDemoNote,
+    operatorReason: staleUseBlocked
+      ? "The active snapshot is stale; manual recovery is required."
+      : undefined,
+  };
+}
+
+function statusFactsFromSnapshot(snapshot: GtfsSnapshot): GtfsStatusFacts {
+  return {
+    metadata: snapshot.metadata,
+    serviceDate: snapshot.serviceDate,
+    coverage: snapshot.coverage,
+    limitations: snapshot.limitations,
+    hasIntervalFrequencies: snapshot.frequencies.some(
+      (frequency) => frequency.timingSemantics === "interval",
+    ),
+    hasShapeGeometry: snapshot.shapes.length > 0,
   };
 }
 
@@ -149,18 +194,22 @@ function unavailableDecision(
     outcome: "unavailable",
     rejectedCandidateId: candidate.candidateSnapshotId,
     rejectionIssues,
-    status: {
-      networkAvailability: "unavailable",
-      freshness: "unknown",
-      coverage: "unknown",
-      evidenceState: "Unknown",
-      connectionState: "no-edge",
-      timingSemantics: "unavailable",
-      geometryState: "unavailable",
-      activeSnapshotId: undefined,
-      limitations: [],
-      operatorReason: reason,
-    },
+    status: getUnavailableGtfsStatus(reason),
+  };
+}
+
+export function getUnavailableGtfsStatus(reason: string): GtfsConsumerStatus {
+  return {
+    networkAvailability: "unavailable",
+    freshness: "unknown",
+    coverage: "unknown",
+    evidenceState: "Unknown",
+    connectionState: "no-edge",
+    timingSemantics: "unavailable",
+    geometryState: "unavailable",
+    activeSnapshotId: undefined,
+    limitations: [],
+    operatorReason: reason,
   };
 }
 
