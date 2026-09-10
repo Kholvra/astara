@@ -8,6 +8,7 @@ import type { GtfsRawFiles } from "~/core/ingestion/gtfsTypes";
 
 const execFileAsync = promisify(execFile);
 const DEFAULT_MAX_MEMBERS = 256;
+const DEFAULT_MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
 const DEFAULT_MAX_MEMBER_BYTES = 64 * 1024 * 1024;
 const DEFAULT_MAX_TOTAL_BYTES = 128 * 1024 * 1024;
 
@@ -18,11 +19,13 @@ export type GtfsArchiveDependencies = Readonly<{
   runCommand?: ArchiveCommandRunner;
   readBytes?: ArchiveByteReader;
   maxMembers?: number;
+  maxArchiveBytes?: number;
   maxMemberBytes?: number;
   maxTotalBytes?: number;
 }>;
 
 export type GtfsArchive = Readonly<{
+  archiveBytes: Uint8Array;
   files: GtfsRawFiles;
   memberNames: readonly string[];
   contentHash: string;
@@ -60,6 +63,12 @@ export async function readGtfsArchive(
   const readBytes = dependencies.readBytes ?? defaultReadBytes;
   const commandArchivePath = resolve(archivePath);
   const archiveBytes = await readArchiveBytes(readBytes, archivePath);
+  if (archiveBytes.byteLength > limits.maxArchiveBytes) {
+    throw new GtfsArchiveError(
+      "ZIP archive exceeds the configured size limit.",
+      archivePath,
+    );
+  }
   const contentHash = createHash("sha256").update(archiveBytes).digest("hex");
   const memberNames = await listTextMembers(
     runCommand,
@@ -94,7 +103,7 @@ export async function readGtfsArchive(
     files[memberName] = content;
   }
 
-  return { files, memberNames, contentHash };
+  return { archiveBytes, files, memberNames, contentHash };
 }
 
 async function listTextMembers(
@@ -202,16 +211,21 @@ function resolveLimits(
   archivePath: string,
 ): Readonly<{
   maxMembers: number;
+  maxArchiveBytes: number;
   maxMemberBytes: number;
   maxTotalBytes: number;
 }> {
   const maxMembers = dependencies.maxMembers ?? DEFAULT_MAX_MEMBERS;
+  const maxArchiveBytes =
+    dependencies.maxArchiveBytes ?? DEFAULT_MAX_ARCHIVE_BYTES;
   const maxMemberBytes =
     dependencies.maxMemberBytes ?? DEFAULT_MAX_MEMBER_BYTES;
   const maxTotalBytes = dependencies.maxTotalBytes ?? DEFAULT_MAX_TOTAL_BYTES;
   if (
     !Number.isSafeInteger(maxMembers) ||
     maxMembers < 1 ||
+    !Number.isSafeInteger(maxArchiveBytes) ||
+    maxArchiveBytes < 1 ||
     !Number.isSafeInteger(maxMemberBytes) ||
     maxMemberBytes < 1 ||
     !Number.isSafeInteger(maxTotalBytes) ||
@@ -219,7 +233,7 @@ function resolveLimits(
   ) {
     throw new GtfsArchiveError("Archive size limits are invalid.", archivePath);
   }
-  return { maxMembers, maxMemberBytes, maxTotalBytes };
+  return { maxMembers, maxArchiveBytes, maxMemberBytes, maxTotalBytes };
 }
 
 function isSafeMemberName(name: string): boolean {

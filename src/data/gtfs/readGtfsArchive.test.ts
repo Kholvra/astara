@@ -40,6 +40,7 @@ describe("readGtfsArchive", () => {
       "agency.txt": "agency_id\nTije\n",
       "routes.txt": "route_id\nR1\n",
     });
+    expect(archive.archiveBytes).toEqual(new Uint8Array([1, 2, 3]));
     expect(archive.memberNames).toEqual(["agency.txt", "routes.txt"]);
     expect(archive.contentHash).toBe(
       createHash("sha256")
@@ -103,5 +104,22 @@ describe("readGtfsArchive", () => {
     await expect(
       readGtfsArchive("feed.zip", dependencies),
     ).rejects.toBeInstanceOf(GtfsArchiveError);
+  });
+
+  it("rejects an oversized raw archive before listing members", async () => {
+    let listed = false;
+    const dependencies: GtfsArchiveDependencies = {
+      runCommand: async () => {
+        listed = true;
+        return "agency.txt";
+      },
+      readBytes: async () => new Uint8Array([1, 2, 3]),
+      maxArchiveBytes: 2,
+    };
+
+    await expect(
+      readGtfsArchive("feed.zip", dependencies),
+    ).rejects.toBeInstanceOf(GtfsArchiveError);
+    expect(listed).toBe(false);
   });
 });
