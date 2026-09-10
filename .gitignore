@@ -13,6 +13,8 @@
 /prisma/db.sqlite-journal
 db.sqlite
 /generated/
+/.gtfs-snapshots/
+/.gtfs-import/
 
 # next.js
 /.next/
@@ -25,6 +27,7 @@ next-env.d.ts
 
 # misc
 .DS_Store
+.cache/
 *.pem
 
 # debug
