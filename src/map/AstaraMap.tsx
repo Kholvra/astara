@@ -45,6 +45,7 @@ export type AstaraMapProps = {
   collapsible?: boolean;
   defaultExpanded?: boolean;
   className?: string;
+  showRecoveryAction?: boolean;
 };
 
 export const AstaraMap = ({
@@ -56,6 +57,7 @@ export const AstaraMap = ({
   collapsible = false,
   defaultExpanded = true,
   className,
+  showRecoveryAction = true,
 }: AstaraMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -331,6 +333,7 @@ export const AstaraMap = ({
       onToggle={() => setExpanded((current) => !current)}
       payload={payload}
       routeState={routeState}
+      showRecoveryAction={showRecoveryAction}
       status={status}
       toggleRef={toggleRef}
       className={className}

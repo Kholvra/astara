@@ -41,9 +41,14 @@ type Module1Props = {
     context: SearchContext,
     failure: LocationRequestFailure,
   ) => void;
+  locationRequestKey?: string;
   onOpenSearch: (context: SearchContext) => void;
   onSelectDestination: (query: string) => void;
+  onPlan?: () => void;
+  onReset?: () => void;
+  onSwap?: () => void;
   origin?: RoutableLocation | null;
+  planEnabled?: boolean;
   timingControls?: React.ReactNode;
   children?: React.ReactNode;
 };
@@ -54,9 +59,14 @@ export const Module1Explore = ({
   locationMessage,
   onLocateUser,
   onLocationError,
+  locationRequestKey,
   onOpenSearch,
   onSelectDestination,
+  onPlan,
+  onReset,
+  onSwap,
   origin,
+  planEnabled = false,
   timingControls,
   children,
 }: Module1Props) => {
@@ -89,6 +99,7 @@ export const Module1Explore = ({
       <div className="absolute right-4 bottom-[232px] z-20">
         <LocationButton
           context={activeContext}
+          requestKey={locationRequestKey}
           onLocationResolved={onLocateUser}
           onLocationError={onLocationError}
         />
@@ -130,6 +141,42 @@ export const Module1Explore = ({
 
         {timingControls ? <div className="mt-3">{timingControls}</div> : null}
 
+        {(onPlan ?? onReset ?? onSwap) && (
+          <div className="mt-3 grid grid-cols-1 gap-2">
+            {onPlan && (
+              <button
+                type="button"
+                onClick={onPlan}
+                disabled={!planEnabled}
+                className="min-h-11 w-full rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                Cari rute
+              </button>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              {onSwap && (
+                <button
+                  type="button"
+                  onClick={onSwap}
+                  disabled={!origin || !destination}
+                  className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:text-slate-300"
+                >
+                  Tukar arah
+                </button>
+              )}
+              {onReset && (
+                <button
+                  type="button"
+                  onClick={onReset}
+                  className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         <p className="text-[11px] leading-4 text-slate-500">
           {activeContext === "origin"
             ? "Pilih asal perjalanan, lalu tentukan tujuan."
@@ -160,6 +207,7 @@ const EndpointField = ({
 
   return (
     <button
+      id={`planner-${context}-field`}
       type="button"
       onClick={onClick}
       aria-label={`${label}: ${location?.name ?? placeholder}`}

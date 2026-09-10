@@ -32,6 +32,7 @@ import { resolveSearchSelection } from "./searchSelectionController";
 type Module2Props = {
   context: SearchContext;
   initialQuery?: string;
+  searchItems?: readonly SearchResultItem[];
   localIndexAvailable?: boolean;
   onBack: () => void;
   onSelectLocation: (
@@ -43,6 +44,7 @@ type Module2Props = {
 export const Module2Search = ({
   context,
   initialQuery = "",
+  searchItems = DEMO_SEARCH_INDEX.items,
   localIndexAvailable = true,
   onBack,
   onSelectLocation,
@@ -51,6 +53,8 @@ export const Module2Search = ({
   const [outcome, setOutcome] = useState<SearchQueryOutcome>(() =>
     resolveSearchQuery(initialQuery, {
       ...DEMO_SEARCH_INDEX,
+      items: searchItems,
+      fallbackItems: searchItems,
       available: localIndexAvailable,
     }),
   );
@@ -67,11 +71,13 @@ export const Module2Search = ({
       setOutcome(
         resolveSearchQuery(boundedValue, {
           ...DEMO_SEARCH_INDEX,
+          items: searchItems,
+          fallbackItems: searchItems,
           available: localIndexAvailable,
         }),
       );
     },
-    [localIndexAvailable],
+    [localIndexAvailable, searchItems],
   );
 
   useEffect(() => {
@@ -99,7 +105,9 @@ export const Module2Search = ({
   };
 
   const handleSelectItem = (item: SearchResultItem) => {
-    handleResolution(resolveSearchSelection({ type: "select_result", item }));
+    handleResolution(
+      resolveSearchSelection({ type: "select_result", item }, searchItems),
+    );
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -190,6 +198,7 @@ export const Module2Search = ({
           {pending ? (
             <ConfirmationPanel
               pending={pending}
+              catalog={searchItems}
               onCancel={() => {
                 setPending(null);
                 setSelectionMessage(null);

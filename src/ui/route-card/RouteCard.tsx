@@ -14,6 +14,8 @@ export type RouteCardProps = RouteCardInput &
     onRetry?: () => void;
     onEdit?: () => void;
     onMapRetry?: () => void;
+    onMapDismiss?: () => void;
+    onStepsToggle?: (open: boolean) => void;
     stepsOpen?: boolean;
     mapOpen?: boolean;
   }>;
@@ -24,8 +26,10 @@ export const RouteCard = (props: RouteCardProps) => {
     onRetry,
     onEdit,
     onMapRetry,
-    stepsOpen = false,
-    mapOpen = false,
+    onMapDismiss,
+    onStepsToggle,
+    stepsOpen,
+    mapOpen,
     ...input
   } = props;
   const model = createRouteCardViewModel(input);
@@ -47,6 +51,8 @@ export const RouteCard = (props: RouteCardProps) => {
       model={model}
       mapCompanion={mapCompanion}
       onMapRetry={onMapRetry}
+      onMapDismiss={onMapDismiss}
+      onStepsToggle={onStepsToggle}
       stepsOpen={stepsOpen}
       mapOpen={mapOpen}
     />
@@ -84,6 +90,7 @@ const RecoveryCard = ({
           </p>
           <h1
             id="route-card-recovery-heading"
+            tabIndex={-1}
             className="text-xl leading-tight font-bold break-words text-amber-950"
           >
             {title}
@@ -124,14 +131,18 @@ type SelectedRouteCardProps = Readonly<{
   model: RouteCardSelectedViewModel;
   mapCompanion?: ReactNode;
   onMapRetry?: () => void;
-  stepsOpen: boolean;
-  mapOpen: boolean;
+  onMapDismiss?: () => void;
+  onStepsToggle?: (open: boolean) => void;
+  stepsOpen?: boolean;
+  mapOpen?: boolean;
 }>;
 
 const SelectedRouteCard = ({
   model,
   mapCompanion,
   onMapRetry,
+  onMapDismiss,
+  onStepsToggle,
   stepsOpen,
   mapOpen,
 }: SelectedRouteCardProps) => {
@@ -150,6 +161,7 @@ const SelectedRouteCard = ({
         </p>
         <h1
           id="route-card-heading"
+          tabIndex={-1}
           className="text-2xl leading-tight font-bold break-words text-slate-950"
         >
           {model.summary.origin} <span aria-hidden="true">→</span>{" "}
@@ -233,7 +245,8 @@ const SelectedRouteCard = ({
 
       <details
         id="route-card-steps"
-        open={stepsOpen}
+        {...(stepsOpen === undefined ? {} : { open: stepsOpen })}
+        onToggle={(event) => onStepsToggle?.(event.currentTarget.open)}
         className="mt-5 min-w-0 rounded-2xl border border-slate-200"
       >
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-slate-950 focus:ring-2 focus:ring-emerald-200 focus:outline-none [&::-webkit-details-marker]:hidden">
@@ -252,7 +265,7 @@ const SelectedRouteCard = ({
       {hasMapSurface && (
         <details
           id="route-card-map"
-          open={mapOpen}
+          {...(mapOpen === undefined ? {} : { open: mapOpen })}
           className="mt-3 min-w-0 rounded-2xl border border-slate-200"
         >
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-slate-950 focus:ring-2 focus:ring-emerald-200 focus:outline-none [&::-webkit-details-marker]:hidden">
@@ -277,6 +290,15 @@ const SelectedRouteCard = ({
                     className="min-h-11 w-full rounded-xl border border-amber-300 bg-white px-4 text-sm font-bold text-amber-950 transition hover:bg-amber-100 focus:ring-2 focus:ring-amber-200 focus:outline-none sm:w-fit"
                   >
                     Coba muat peta lagi
+                  </button>
+                )}
+                {onMapDismiss && (
+                  <button
+                    type="button"
+                    onClick={onMapDismiss}
+                    className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 focus:ring-2 focus:ring-emerald-200 focus:outline-none sm:w-fit"
+                  >
+                    Lanjut tanpa peta
                   </button>
                 )}
               </div>

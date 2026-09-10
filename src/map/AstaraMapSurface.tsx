@@ -31,6 +31,7 @@ export type AstaraMapSurfaceProps = Readonly<{
   payload: RouteMapPayload | undefined;
   routeState: MapRouteState;
   status: AstaraMapStatus;
+  showRecoveryAction: boolean;
   toggleRef: RefObject<HTMLButtonElement | null>;
   className?: string;
 }>;
@@ -48,6 +49,7 @@ export const AstaraMapSurface = ({
   payload,
   routeState,
   status,
+  showRecoveryAction,
   toggleRef,
   className,
 }: AstaraMapSurfaceProps) => {
@@ -108,7 +110,7 @@ export const AstaraMapSurface = ({
                   aria-live="polite"
                 >
                   <p>{statusPanel.message}</p>
-                  {statusPanel.retry && (
+                  {statusPanel.retry && showRecoveryAction && (
                     <button
                       type="button"
                       className="mt-2 min-h-11 rounded-lg bg-slate-900 px-3 text-xs font-semibold text-white focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
