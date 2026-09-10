@@ -1,30 +1,92 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 
 import { MOCK_SEARCH_ITEMS } from "~/core/search/mockSearchData";
-import { type SearchResultItem } from "~/core/search/search.types";
-import { AstaraMap } from "~/map/AstaraMap";
-import { Module1Explore } from "~/ui/explore/home";
-import { Module2Search } from "~/ui/explore/search";
+import { resolveCurrentLocation } from "~/core/search/searchResolution";
+import {
+  type CurrentLocationReading,
+  type RoutableLocation,
+  type SearchContext,
+  type SearchEndpointState,
+} from "~/core/search/search.types";
+import { assignSearchEndpoint } from "~/core/search/searchEndpoints";
+import { Module1Explore } from "~/ui/explore/Module1Explore";
+import { Module2Search } from "~/ui/explore/Module2Search";
+import type { LocationRequestFailure } from "~/ui/map/locationReader";
+
+const AstaraMap = dynamic(
+  () => import("~/map/AstaraMap").then((module) => module.AstaraMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full items-center justify-center bg-slate-100 text-xs text-slate-400">
+        Memuat peta…
+      </div>
+    ),
+  },
+);
 
 type AppScreen = "explore" | "search";
 
 export default function HomePage() {
   const [screen, setScreen] = useState<AppScreen>("explore");
-  const [selectedLocation, setSelectedLocation] =
-    useState<SearchResultItem | null>(MOCK_SEARCH_ITEMS[0] ?? null);
+  const [activeContext, setActiveContext] = useState<SearchContext>("origin");
+  const [endpoints, setEndpoints] = useState<SearchEndpointState>({
+    origin: null,
+    destination: null,
+  });
   const [initialSearchQuery, setInitialSearchQuery] = useState("");
+  const [locationMessage, setLocationMessage] = useState<string | undefined>();
   const mapStyleUrl = process.env.NEXT_PUBLIC_MAP_STYLE_URL;
 
-  const handleSelectFromSearch = (item: SearchResultItem) => {
-    setSelectedLocation(item);
+  const openSearch = (context: SearchContext, query = "") => {
+    setActiveContext(context);
+    setInitialSearchQuery(query);
+    setLocationMessage(undefined);
+    setScreen("search");
+  };
+
+  const handleSelectLocation = (
+    context: SearchContext,
+    location: RoutableLocation,
+  ) => {
+    setEndpoints((current) => assignSearchEndpoint(current, context, location));
+    setActiveContext(otherContext(context));
+    setInitialSearchQuery("");
+    setLocationMessage(undefined);
     setScreen("explore");
   };
 
-  const handleDestinationChipClick = (query: string) => {
-    setInitialSearchQuery(query);
-    setScreen("search");
+  const handleLocationResolved = (
+    context: SearchContext,
+    reading: CurrentLocationReading,
+  ) => {
+    const resolution = resolveCurrentLocation(reading, MOCK_SEARCH_ITEMS);
+    if (resolution.state !== "selected") {
+      setLocationMessage(resolution.message);
+      return;
+    }
+
+    setEndpoints((current) =>
+      assignSearchEndpoint(current, context, resolution.location),
+    );
+    setActiveContext(otherContext(context));
+    setLocationMessage(
+      resolution.distanceBasis === "straight_line_only"
+        ? "Lokasi dipakai untuk endpoint ini. Perkiraan garis lurus; jalur jalan kaki belum diverifikasi."
+        : "Lokasi dipakai untuk endpoint ini dengan jarak jalan kaki dari data pendukung.",
+    );
+  };
+
+  const handleLocationError = (
+    _context: SearchContext,
+    _failure: LocationRequestFailure,
+  ) => {
+    setLocationMessage(
+      "Lokasi tidak tersedia atau kurang presisi. Cari halte secara manual.",
+    );
   };
 
   return (
@@ -32,13 +94,14 @@ export default function HomePage() {
       <div className="relative flex h-screen w-full flex-col overflow-hidden bg-white shadow-none sm:h-[min(900px,94vh)] sm:w-[393px] sm:rounded-[48px] sm:border-[0px] sm:border-slate-800/10 sm:shadow-[0_25px_60px_-15px_rgba(15,23,42,0.12),0_10px_20px_-5px_rgba(15,23,42,0.04)] sm:ring-8 sm:ring-slate-200/50">
         {screen === "explore" && (
           <Module1Explore
-            onOpenSearch={() => {
-              setInitialSearchQuery("");
-              setScreen("search");
-            }}
-            onSelectDestination={handleDestinationChipClick}
-            onViewRoute={() => setScreen("search")}
-            selectedStop={selectedLocation}
+            activeContext={activeContext}
+            destination={endpoints.destination}
+            locationMessage={locationMessage}
+            onLocateUser={handleLocationResolved}
+            onLocationError={handleLocationError}
+            onOpenSearch={openSearch}
+            onSelectDestination={(query) => openSearch("destination", query)}
+            origin={endpoints.origin}
           >
             <AstaraMap styleUrl={mapStyleUrl} />
           </Module1Explore>
@@ -46,14 +109,17 @@ export default function HomePage() {
 
         {screen === "search" && (
           <Module2Search
-            onBack={() => setScreen("explore")}
-            onSelectResult={handleSelectFromSearch}
+            context={activeContext}
             initialQuery={initialSearchQuery}
-          >
-            <AstaraMap styleUrl={mapStyleUrl} />
-          </Module2Search>
+            onBack={() => setScreen("explore")}
+            onSelectLocation={handleSelectLocation}
+          />
         )}
       </div>
     </main>
   );
+}
+
+function otherContext(context: SearchContext): SearchContext {
+  return context === "origin" ? "destination" : "origin";
 }
