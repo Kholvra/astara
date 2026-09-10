@@ -149,12 +149,14 @@ const SearchResultButton = ({ result, onSelect }: SearchResultButtonProps) => {
 
 type ConfirmationPanelProps = {
   pending: PendingSearchResolution;
+  catalog?: readonly SearchResultItem[];
   onCancel: () => void;
   onResolve: (resolution: SearchResolutionOutcome) => void;
 };
 
 export const ConfirmationPanel = ({
   pending,
+  catalog,
   onCancel,
   onResolve,
 }: ConfirmationPanelProps) => {
@@ -179,11 +181,14 @@ export const ConfirmationPanel = ({
               type="button"
               onClick={() =>
                 onResolve(
-                  resolveSearchSelection({
-                    type: "select_platform",
-                    item: pending.item,
-                    platformId: platform.id,
-                  }),
+                  resolveSearchSelection(
+                    {
+                      type: "select_platform",
+                      item: pending.item,
+                      platformId: platform.id,
+                    },
+                    catalog,
+                  ),
                 )
               }
               className="min-h-14 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:border-emerald-300 hover:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
@@ -237,11 +242,14 @@ export const ConfirmationPanel = ({
           type="button"
           onClick={() =>
             onResolve(
-              resolveSearchSelection({
-                type: "confirm_place_conversion",
-                item: pending.item,
-                stopId: pending.suggestedStop.id,
-              }),
+              resolveSearchSelection(
+                {
+                  type: "confirm_place_conversion",
+                  item: pending.item,
+                  stopId: pending.suggestedStop.id,
+                },
+                catalog,
+              ),
             )
           }
           className="min-h-11 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
@@ -281,10 +289,13 @@ export const ConfirmationPanel = ({
         type="button"
         onClick={() =>
           onResolve(
-            resolveSearchSelection({
-              type: "confirm_low_confidence",
-              item: pending.item,
-            }),
+            resolveSearchSelection(
+              {
+                type: "confirm_low_confidence",
+                item: pending.item,
+              },
+              catalog,
+            ),
           )
         }
         className="min-h-11 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"

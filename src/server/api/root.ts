@@ -1,6 +1,7 @@
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 import { gtfsRouter } from "./routers/gtfs";
+import { plannerRouter } from "./routers/planner";
 
 /**
  * This is the primary router for your server.
@@ -9,6 +10,7 @@ import { gtfsRouter } from "./routers/gtfs";
  */
 export const appRouter = createTRPCRouter({
   gtfs: gtfsRouter,
+  planner: plannerRouter,
 });
 
 // export type definition of API

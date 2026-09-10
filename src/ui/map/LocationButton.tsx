@@ -16,6 +16,7 @@ type LocationState = "idle" | "requesting" | "resolved" | "error";
 
 export type LocationButtonProps = {
   context: SearchContext;
+  requestKey?: string;
   onLocationResolved?: (
     context: SearchContext,
     reading: CurrentLocationReading,
@@ -28,6 +29,7 @@ export type LocationButtonProps = {
 
 export const LocationButton = ({
   context,
+  requestKey,
   onLocationResolved,
   onLocationError,
 }: LocationButtonProps) => {
@@ -46,6 +48,11 @@ export const LocationButton = ({
       controllerRef.current?.cancel();
     };
   }, []);
+
+  useEffect(() => {
+    controllerRef.current?.cancel();
+    setStatus("idle");
+  }, [context, requestKey]);
 
   const handleGetLocation = () => {
     const controller =

@@ -259,7 +259,9 @@ export function createJourneyStatus(
 
   return {
     label: "Data terbatas",
-    detail: "Sebagian detail akses, data, atau jalur belum lengkap.",
+    detail:
+      journey.lineage.staticDemoNote ??
+      "Sebagian detail akses, data, atau jalur belum lengkap.",
   };
 }
 
@@ -276,7 +278,9 @@ function createTransitStatus(journey: JourneyRoute): RouteCardStatus {
       }
     : {
         label: "Data terbatas",
-        detail: "Sebagian detail layanan belum lengkap.",
+        detail:
+          journey.lineage.staticDemoNote ??
+          "Sebagian detail layanan belum lengkap.",
       };
 }
 
