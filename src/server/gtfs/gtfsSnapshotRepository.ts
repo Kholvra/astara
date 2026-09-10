@@ -164,6 +164,7 @@ async function persistCandidateInTransaction(
   await persistGtfsSnapshot(transaction, writeInput);
   if (decision.outcome === "published") {
     await setActiveSnapshot(transaction, input.metadata.snapshotId, input.now);
+    activeSnapshotCache = null;
   }
   await writePublicationDecision(transaction, input, decision);
   return decision;
@@ -201,6 +202,13 @@ function assertReplayMetadata(
   }
 }
 
+let activeSnapshotCache: { snapshotId: string; snapshot: GtfsSnapshot } | null =
+  null;
+
+export function clearActiveSnapshotCache(): void {
+  activeSnapshotCache = null;
+}
+
 async function getActiveSnapshot(
   database: PrismaClient,
 ): Promise<GtfsSnapshot | undefined> {
@@ -209,14 +217,24 @@ async function getActiveSnapshot(
     select: { snapshotId: true },
   });
   if (!pointer) {
+    activeSnapshotCache = null;
     return undefined;
+  }
+  if (activeSnapshotCache?.snapshotId === pointer.snapshotId) {
+    return activeSnapshotCache.snapshot;
   }
 
   const row = await database.gtfsSnapshot.findUnique({
     where: { snapshotId: pointer.snapshotId },
     include: gtfsSnapshotInclude,
   });
-  return row ? mapGtfsSnapshotRow(row) : undefined;
+  if (!row) {
+    activeSnapshotCache = null;
+    return undefined;
+  }
+  const snapshot = mapGtfsSnapshotRow(row);
+  activeSnapshotCache = { snapshotId: pointer.snapshotId, snapshot };
+  return snapshot;
 }
 
 async function getRecoveryRecord(
@@ -284,6 +302,7 @@ async function activateStoredSnapshotInTransaction(
   });
   if (currentPointer?.snapshotId !== snapshotId) {
     await setActiveSnapshot(transaction, snapshotId, now);
+    activeSnapshotCache = null;
     await transaction.gtfsPublicationDecision.create({
       data: {
         candidateSnapshotId: snapshotId,
