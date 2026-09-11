@@ -67,28 +67,56 @@ function toSearchState(
   label: RaptorLabel,
   materializationContext: RouteLegMaterializationContext,
 ): SearchState {
-  const legs: RouteLeg[] = [];
+  const unusedTransfers = [...label.transferEdges];
+  const materializedLegs: RouteLeg[] = [];
   for (const edge of label.accessEdges) {
-    legs.push(createWalkingLeg(edge, legs.length));
+    materializedLegs.push(createWalkingLeg(edge, materializedLegs.length));
   }
+
   for (let index = 0; index < label.rides.length; index += 1) {
     const ride = label.rides[index];
     if (!ride) {
       continue;
     }
-    legs.push(createTransitLeg(ride, legs.length, materializationContext));
-    const transfer = label.transferEdges[index];
-    if (transfer) {
-      legs.push(createWalkingLeg(transfer, legs.length));
+    materializedLegs.push(
+      createTransitLeg(ride, materializedLegs.length, materializationContext),
+    );
+
+    if (index < label.rides.length - 1) {
+      const nextRide = label.rides[index + 1];
+      const nextFromStopId = nextRide?.fromStopTime.stopId;
+      const transferIdx = unusedTransfers.findIndex(
+        (edge) =>
+          Boolean(edge) &&
+          edge?.from.stopId === ride.toStopTime.stopId &&
+          (nextFromStopId === undefined || edge?.to.stopId === nextFromStopId),
+      );
+      if (transferIdx !== -1) {
+        const [transfer] = unusedTransfers.splice(transferIdx, 1);
+        if (transfer) {
+          materializedLegs.push(
+            createWalkingLeg(transfer, materializedLegs.length),
+          );
+        }
+      }
     }
   }
+
+  for (const transfer of unusedTransfers) {
+    if (transfer) {
+      materializedLegs.push(
+        createWalkingLeg(transfer, materializedLegs.length),
+      );
+    }
+  }
+
   return {
     stopId: label.stopId,
     readyAtSeconds: label.readyAtSeconds,
     ...(label.requiredRouteId
       ? { requiredRouteId: label.requiredRouteId }
       : {}),
-    legs,
+    legs: materializedLegs,
     rides: label.rides,
     usedTripIds: label.usedTripIds,
     usedEdgeIds: label.usedEdgeIds,

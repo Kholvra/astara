@@ -183,6 +183,13 @@ describe("RAPTOR route search", () => {
       stopSequence: 1,
       lineage: { ...base.stopTimes[2]!.lineage, rowNumber: 6 },
     };
+    const branchDestinationTime = {
+      ...base.stopTimes[3]!,
+      tripId: branchTrip.id,
+      stopId: "destination",
+      stopSequence: 2,
+      lineage: { ...base.stopTimes[3]!.lineage, rowNumber: 7 },
+    };
     const laterBranch = makeTransferEdge({
       edgeId: "edge-z",
       to: { stopId: branchStop.id, transitServiceId: routeThree.id },
@@ -193,7 +200,7 @@ describe("RAPTOR route search", () => {
         routes: [...base.routes, routeThree],
         stops: [...base.stops, branchStop],
         trips: [...base.trips, branchTrip],
-        stopTimes: [...base.stopTimes, branchStopTime],
+        stopTimes: [...base.stopTimes, branchStopTime, branchDestinationTime],
         calendars: [
           ...base.calendars,
           { ...base.calendars[1]!, serviceId: branchTrip.serviceId },
@@ -318,6 +325,182 @@ describe("RAPTOR route search", () => {
       return;
     }
     expect(result.primary.routeId).toContain("route-0:trip-0");
+  });
+
+  it("prioritizes a destination-serving route at a dense generic transfer", () => {
+    const base = makeTransferSnapshot();
+    const route = base.routes[1];
+    const trip = base.trips[1];
+    const hubB = base.stops.find((stop) => stop.id === "hub-b");
+    const hubBStopTime = base.stopTimes.find(
+      (stopTime) => stopTime.tripId === trip?.id && stopTime.stopId === "hub-b",
+    );
+    const destinationStopTime = base.stopTimes.find(
+      (stopTime) =>
+        stopTime.tripId === trip?.id && stopTime.stopId === "destination",
+    );
+    if (!route || !trip || !hubB || !hubBStopTime || !destinationStopTime) {
+      throw new Error("Dense transfer fixture requires the second route");
+    }
+
+    const branchStops = Array.from({ length: 3 }, (_, index) => ({
+      ...hubB,
+      id: `branch-destination-${index}`,
+      name: `Branch destination ${index}`,
+      coordinate: [106.807 + index / 10_000, -6.193] as [number, number],
+      lineage: { ...hubB.lineage, rowNumber: 30 + index },
+    }));
+    const branchRoutes = branchStops.map((stop, index) => ({
+      ...route,
+      id: `route-0${index}`,
+      shortName: `0${index}`,
+      lineage: { ...route.lineage, rowNumber: 30 + index },
+    }));
+    const branchTrips = branchRoutes.map((branchRoute, index) => ({
+      ...trip,
+      id: `trip-branch-${index}`,
+      routeId: branchRoute.id,
+      serviceId: `service-branch-${index}`,
+      shapeId: undefined,
+      lineage: { ...trip.lineage, rowNumber: 30 + index },
+    }));
+    const branchStopTimes = branchTrips.flatMap((branchTrip, index) => [
+      {
+        ...hubBStopTime,
+        tripId: branchTrip.id,
+        stopSequence: 1,
+        lineage: { ...hubBStopTime.lineage, rowNumber: 30 + index },
+      },
+      {
+        ...destinationStopTime,
+        tripId: branchTrip.id,
+        stopId: branchStops[index]?.id ?? "missing-branch-stop",
+        stopSequence: 2,
+        lineage: { ...destinationStopTime.lineage, rowNumber: 40 + index },
+      },
+    ]);
+    const branchCalendars = branchTrips.map((branchTrip, index) => ({
+      ...base.calendars[1]!,
+      serviceId: branchTrip.serviceId,
+      lineage: { ...base.calendars[1]!.lineage, rowNumber: 30 + index },
+    }));
+
+    const result = selectPrimaryRoute({
+      snapshot: {
+        ...base,
+        routes: [...base.routes, ...branchRoutes],
+        stops: [...base.stops, ...branchStops],
+        trips: [...base.trips, ...branchTrips],
+        stopTimes: [...base.stopTimes, ...branchStopTimes],
+        calendars: [...base.calendars, ...branchCalendars],
+      },
+      planning: makePlanningInput("2026-09-11", "08:00"),
+      transferEdges: [makeTransferEdge({ to: { stopId: "hub-b" } })],
+      config: { maxSearchStates: 2 },
+    });
+
+    expect(result.state).toBe("selected");
+    if (result.state !== "selected") {
+      return;
+    }
+    expect(result.primary.routeId).toContain("route-2:trip-2");
+    expect(result.primary.legs.map((leg) => leg.kind)).toEqual([
+      "transit",
+      "walking",
+      "transit",
+    ]);
+  });
+
+  it("switches services at the same GTFS stop without inventing a walking leg", () => {
+    const base = makeTransferSnapshot();
+    const routeTwo = base.routes[1];
+    const tripTwo = base.trips[1];
+    if (!routeTwo || !tripTwo) {
+      throw new Error("Same-stop transfer fixture requires the second route");
+    }
+
+    const sharedStopTimes = base.stopTimes.map((stopTime) =>
+      stopTime.tripId === tripTwo.id && stopTime.stopId === "hub-b"
+        ? { ...stopTime, stopId: "hub-a" }
+        : stopTime,
+    );
+    const result = selectPrimaryRoute({
+      snapshot: { ...base, stopTimes: sharedStopTimes },
+      planning: makePlanningInput("2026-09-11", "08:00"),
+      transferEdges: [],
+    });
+
+    expect(result.state).toBe("selected");
+    if (result.state !== "selected") {
+      return;
+    }
+    expect(result.primary.legs.map((leg) => leg.kind)).toEqual([
+      "transit",
+      "transit",
+    ]);
+    expect(
+      result.primary.legs
+        .filter((leg) => leg.kind === "transit")
+        .map((leg) => leg.routeId),
+    ).toEqual(["route-1", "route-2"]);
+    expect(result.primary.transferCount).toBe(1);
+  });
+
+  it("keeps a later physical transfer after the correct service-switch leg", () => {
+    const base = makeTransferSnapshot();
+    const routeTwo = base.routes[1];
+    const tripTwo = base.trips[1];
+    const destination = base.stops.find((stop) => stop.id === "destination");
+    if (!routeTwo || !tripTwo || !destination) {
+      throw new Error("Service-switch fixture requires the second route");
+    }
+
+    const finalDestination = {
+      ...destination,
+      id: "destination-parent",
+      name: "Destination parent",
+      coordinate: [106.811, -6.189] as [number, number],
+      lineage: { ...destination.lineage, rowNumber: 8 },
+    };
+    const sharedStopTimes = base.stopTimes.map((stopTime) =>
+      stopTime.tripId === tripTwo.id && stopTime.stopId === "hub-b"
+        ? { ...stopTime, stopId: "hub-a" }
+        : stopTime,
+    );
+    const result = selectPrimaryRoute({
+      snapshot: {
+        ...base,
+        stops: [...base.stops, finalDestination],
+        stopTimes: sharedStopTimes,
+      },
+      planning: {
+        ...makePlanningInput("2026-09-11", "08:00"),
+        destinationId: finalDestination.id,
+      },
+      transferEdges: [
+        makeTransferEdge({
+          edgeId: "edge-final",
+          from: { stopId: destination.id },
+          to: { stopId: finalDestination.id },
+        }),
+      ],
+    });
+
+    expect(result.state).toBe("selected");
+    if (result.state !== "selected") {
+      return;
+    }
+    expect(result.primary.legs.map((leg) => leg.kind)).toEqual([
+      "transit",
+      "transit",
+      "walking",
+    ]);
+    expect(result.primary.legs[2]).toMatchObject({
+      kind: "walking",
+      edgeId: "edge-final",
+      fromStopId: destination.id,
+      toStopId: finalDestination.id,
+    });
   });
 
   it("honors an injected synchronous deadline inside route scanning", () => {

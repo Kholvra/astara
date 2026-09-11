@@ -293,4 +293,72 @@ describe("RAPTOR journey materialization", () => {
       },
     });
   });
+
+  it("places egress transfer after final ride when an earlier transfer is a same-stop switch", () => {
+    const base = makeTransferSnapshot();
+    // Modify trip-2 to board at hub-a (same stop as trip-1 alighting)
+    const modifiedStopTimes = base.stopTimes.map((stopTime) => {
+      if (stopTime.tripId === "trip-2" && stopTime.stopId === "hub-b") {
+        return { ...stopTime, stopId: "hub-a" };
+      }
+      return stopTime;
+    });
+    const parentDestination = {
+      ...base.stops[1]!,
+      id: "destination-parent",
+      name: "Destination Parent",
+      locationType: 1,
+      coordinate: [106.81, -6.19] as [number, number],
+      lineage: { ...base.stops[1]!.lineage, rowNumber: 99 },
+    };
+
+    const result = selectPrimaryRoute({
+      snapshot: {
+        ...base,
+        stops: [...base.stops, parentDestination],
+        stopTimes: modifiedStopTimes,
+      },
+      planning: {
+        ...makePlanningInput("2026-09-11", "08:00"),
+        destinationId: parentDestination.id,
+      },
+      transferEdges: [
+        makeTransferEdge({
+          edgeId: "edge-egress-destination",
+          from: { stopId: "destination" },
+          to: { stopId: parentDestination.id },
+        }),
+      ],
+    });
+
+    expect(result.state).toBe("selected");
+    if (result.state !== "selected") {
+      return;
+    }
+
+    // Sequence MUST be: transit (trip-1) -> transit (trip-2) -> walking (egress to destination-parent)
+    // Egress walk must NOT be inserted between trip-1 and trip-2!
+    expect(result.primary.legs.map((leg) => leg.kind)).toEqual([
+      "transit",
+      "transit",
+      "walking",
+    ]);
+    expect(result.primary.legs[0]).toMatchObject({
+      kind: "transit",
+      tripId: "trip-1",
+      toStopId: "hub-a",
+    });
+    expect(result.primary.legs[1]).toMatchObject({
+      kind: "transit",
+      tripId: "trip-2",
+      fromStopId: "hub-a",
+      toStopId: "destination",
+    });
+    expect(result.primary.legs[2]).toMatchObject({
+      kind: "walking",
+      edgeId: "edge-egress-destination",
+      fromStopId: "destination",
+      toStopId: parentDestination.id,
+    });
+  });
 });

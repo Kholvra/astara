@@ -91,12 +91,11 @@ export function createSameStopRouteIds(
   if (remainingTransfers < 0) {
     return [];
   }
-  return (
-    context.index.routeIdsByStopId.get(stopId) ?? []
-  ).filter(
+  return (context.index.routeIdsByStopId.get(stopId) ?? []).filter(
     (targetRouteId) =>
       targetRouteId !== routeId &&
       isSupportedRoute(context, targetRouteId) &&
+      isRouteProgressingTowardDestination(context, routeId, targetRouteId) &&
       (context.routeTransferDistanceToDestination.get(targetRouteId) ??
         Number.POSITIVE_INFINITY) <= remainingTransfers,
   );
@@ -122,8 +121,24 @@ export function isUsefulTransferEdge(
     (targetRouteId) =>
       targetRouteId !== routeId &&
       isSupportedRoute(context, targetRouteId) &&
+      isRouteProgressingTowardDestination(context, routeId, targetRouteId) &&
       (context.routeTransferDistanceToDestination.get(targetRouteId) ??
         Number.POSITIVE_INFINITY) <= remainingTransfers,
+  );
+}
+
+function isRouteProgressingTowardDestination(
+  context: SearchContext,
+  routeId: string,
+  targetRouteId: string,
+): boolean {
+  const routeDistance = context.routeTransferDistanceToDestination.get(routeId);
+  const targetRouteDistance =
+    context.routeTransferDistanceToDestination.get(targetRouteId);
+  return (
+    routeDistance !== undefined &&
+    targetRouteDistance !== undefined &&
+    targetRouteDistance < routeDistance
   );
 }
 
