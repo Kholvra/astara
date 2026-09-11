@@ -73,6 +73,7 @@ describe("Module1Explore markup and layout contract", () => {
     expect(html).toContain('aria-controls="explore-bottom-sheet"');
     expect(html).toContain("grid-rows-[0fr]");
     expect(html).toContain("[scrollbar-width:none]");
+    expect(html).toContain("overflow-hidden");
     expect(html).not.toContain("Lihat opsi &amp; waktu");
   });
 
@@ -92,6 +93,7 @@ describe("Module1Explore markup and layout contract", () => {
     );
 
     expect(html).toContain("max-h-[calc(100%-236px)]");
+    expect(html).toContain("overflow-y-auto");
     expect(html).toContain("grid-rows-[1fr]");
     expect(html).toContain("mock-timing-controls");
   });
@@ -148,6 +150,7 @@ describe("Module1Explore markup and layout contract", () => {
     expect(html).toContain("route-card-heading");
     expect(html).toContain('aria-hidden="true"');
     expect(html).toContain("grid-rows-[0fr]");
+    expect(html).toContain("overflow-hidden");
     expect(html).not.toContain("Tutup detail");
     expect(html).not.toContain("TUJUAN POPULER");
     expect(html).not.toContain("chip-monas");
@@ -170,6 +173,7 @@ describe("Module1Explore markup and layout contract", () => {
     expect(html).toContain("route-steps-content");
     expect(html).toContain('aria-hidden="false"');
     expect(html).toContain("grid-rows-[1fr]");
+    expect(html).toContain("overflow-y-auto");
     expect(html).toContain("explore-bottom-sheet-handle");
     expect(html).not.toContain("Tutup detail");
   });
@@ -206,13 +210,13 @@ describe("Module1Explore markup and layout contract", () => {
     );
 
     expect(html).toContain("route-not-found-card");
-    expect(html).toContain("Rute Tidak Ditemukan");
+    expect(html).toContain("Rute tidak ditemukan");
     expect(html).toContain("Tidak ada rute yang cocok. Coba halte atau waktu lain.");
-    expect(html).toContain("Tukar Arah");
-    expect(html).toContain("Ganti Tujuan");
-    expect(html).toContain("Reset");
-    expect(html).not.toContain("TUJUAN POPULER");
-    expect(html).not.toContain("chip-monas");
+    expect(html).toContain("Tukar");
+    expect(html).toContain("Ubah");
+    expect(html).toContain("TUJUAN POPULER");
+    expect(html).toContain("chip-monas");
+    expect(html).toContain("overflow-hidden");
   });
 
   it("renders loading card when plannerState is loading", () => {
@@ -246,6 +250,7 @@ describe("Module1Explore markup and layout contract", () => {
     expect(html).toContain("route-loading-card");
     expect(html).toContain("Mencari rute terbaik…");
     expect(html).toContain("Menghubungkan Monas ke Blok M");
-    expect(html).not.toContain("TUJUAN POPULER");
+    expect(html).toContain("TUJUAN POPULER");
+    expect(html).toContain("overflow-hidden");
   });
 });

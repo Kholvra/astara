@@ -281,10 +281,12 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
         plannerMessage={snapshot.message}
         departAt={snapshot.departAt}
         stepsOpen={
-          snapshot.state === "detail" ||
-          (snapshot.state === "map-failure" &&
-            snapshot.mapReturnState === "detail" &&
-            snapshot.detailOpen)
+          snapshot.route
+            ? snapshot.state === "detail" ||
+              (snapshot.state === "map-failure" &&
+                snapshot.mapReturnState === "detail" &&
+                snapshot.detailOpen)
+            : undefined
         }
         onStepsToggle={(open) => {
           if (open) {
