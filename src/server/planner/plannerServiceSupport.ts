@@ -7,10 +7,16 @@ import type {
   PlannerCatalog,
   PlannerPlanFailure,
 } from "~/core/planner/plannerTypes";
+import type { SearchResultItem } from "~/core/search/search.types";
 import type {
   JourneyRoute,
   RouteEngineConfig,
   RouteSelectionResult,
+} from "~/core/routing/routingTypes";
+import {
+  DEFAULT_MAX_LABEL_EXPANSIONS,
+  DEFAULT_MAX_SEARCH_DURATION_MS,
+  DEFAULT_ROUTE_RULES_VERSION,
 } from "~/core/routing/routingTypes";
 import { evaluateTransfer } from "~/core/transfer/transferGraph";
 import type {
@@ -27,7 +33,9 @@ export const DEFAULT_ROUTE_CONFIG: RouteEngineConfig = {
   supportedRouteTypes: [3],
   maxTransfers: 3,
   maxSearchStates: 5_000,
-  routeRulesVersion: "route-engine-v1",
+  maxLabelExpansions: DEFAULT_MAX_LABEL_EXPANSIONS,
+  maxSearchDurationMs: DEFAULT_MAX_SEARCH_DURATION_MS,
+  routeRulesVersion: DEFAULT_ROUTE_RULES_VERSION,
 };
 
 export const MAX_TRANSFER_EDGE_CANDIDATES = 10_000;
@@ -46,6 +54,12 @@ export function createPlannerConfigurationHash(
         routeConfig.maxTransfers ?? DEFAULT_ROUTE_CONFIG.maxTransfers,
       maxSearchStates:
         routeConfig.maxSearchStates ?? DEFAULT_ROUTE_CONFIG.maxSearchStates,
+      maxLabelExpansions:
+        routeConfig.maxLabelExpansions ??
+        DEFAULT_ROUTE_CONFIG.maxLabelExpansions,
+      maxSearchDurationMs:
+        routeConfig.maxSearchDurationMs ??
+        DEFAULT_ROUTE_CONFIG.maxSearchDurationMs,
       routeRulesVersion:
         routeConfig.routeRulesVersion ?? DEFAULT_ROUTE_CONFIG.routeRulesVersion,
     },
@@ -90,18 +104,100 @@ export function createStopCatalog(
       : status.evidenceState === "Perlu dicek"
         ? "Perlu dicek"
         : "Data terbatas";
-  return snapshot.stops
-    .filter((stop) => stop.locationType !== 2)
-    .map((stop) => ({
-      id: stop.id,
-      title: stop.name,
-      type: "stop_or_route" as const,
-      coordinates: stop.coordinate,
-      source: "gtfs_local" as const,
-      verification,
-      confidence: "high" as const,
-      ...(stop.stopCode ? { aliases: [stop.stopCode] } : {}),
-    }));
+  const routeNamesByStopId = createRouteNamesByStopId(snapshot);
+  const parentStops = new Map(
+    snapshot.stops
+      .filter((stop) => stop.locationType === 1)
+      .map((stop) => [stop.id, stop]),
+  );
+  const childrenByParent = new Map<string, GtfsSnapshot["stops"]>();
+  for (const stop of snapshot.stops) {
+    if (stop.locationType === 1 || stop.locationType === 2) continue;
+    const parentId = stop.parentStationId?.trim();
+    if (!parentId || !parentStops.has(parentId)) continue;
+    const children = childrenByParent.get(parentId) ?? [];
+    childrenByParent.set(parentId, [...children, stop]);
+  }
+
+  const items: SearchResultItem[] = [];
+  for (const stop of snapshot.stops) {
+    if (stop.locationType === 2) continue;
+    if (stop.locationType === 1) {
+      const children = childrenByParent.get(stop.id) ?? [];
+      if (children.length === 0) continue;
+      items.push(
+        createCatalogItem(stop, children, routeNamesByStopId, verification),
+      );
+      continue;
+    }
+    const parentId = stop.parentStationId?.trim();
+    if (parentId && parentStops.has(parentId)) continue;
+    items.push(
+      createCatalogItem(stop, [stop], routeNamesByStopId, verification),
+    );
+  }
+  return items;
+}
+
+function createCatalogItem(
+  representative: GtfsSnapshot["stops"][number],
+  representedStops: readonly GtfsSnapshot["stops"][number][],
+  routeNamesByStopId: ReadonlyMap<string, readonly string[]>,
+  verification: SearchResultItem["verification"],
+): SearchResultItem {
+  const routes = sortRouteNames(
+    representedStops.flatMap((stop) => routeNamesByStopId.get(stop.id) ?? []),
+  );
+  const subtitle = routes.join(" · ");
+  const stationSubtitle =
+    representative.locationType === 1 && representedStops.length > 0
+      ? `${representedStops.length} halte · ${subtitle}`
+      : subtitle;
+  return {
+    id: representative.id,
+    title: representative.name,
+    type: "stop_or_route",
+    coordinates: representative.coordinate,
+    source: "gtfs_local",
+    verification,
+    confidence: "high",
+    ...(stationSubtitle ? { subtitle: stationSubtitle } : {}),
+    ...(routes.length > 0 ? { routes } : {}),
+    ...(representative.stopCode ? { aliases: [representative.stopCode] } : {}),
+  };
+}
+
+function createRouteNamesByStopId(
+  snapshot: GtfsSnapshot,
+): ReadonlyMap<string, readonly string[]> {
+  const routeNamesById = new Map(
+    snapshot.routes.map((route) => [
+      route.id,
+      route.shortName.trim() || route.longName.trim(),
+    ]),
+  );
+  const tripById = new Map(snapshot.trips.map((trip) => [trip.id, trip]));
+  const routeNamesByStopId = new Map<string, Set<string>>();
+  for (const stopTime of snapshot.stopTimes) {
+    const trip = tripById.get(stopTime.tripId);
+    const routeName = trip ? routeNamesById.get(trip.routeId) : undefined;
+    if (!routeName) continue;
+    const routeNames = routeNamesByStopId.get(stopTime.stopId) ?? new Set();
+    routeNames.add(routeName);
+    routeNamesByStopId.set(stopTime.stopId, routeNames);
+  }
+  return new Map(
+    [...routeNamesByStopId.entries()].map(([stopId, routeNames]) => [
+      stopId,
+      sortRouteNames([...routeNames]),
+    ]),
+  );
+}
+
+function sortRouteNames(routeNames: readonly string[]): readonly string[] {
+  return [...new Set(routeNames)].sort((left, right) =>
+    left.localeCompare(right, "en", { numeric: true }),
+  );
 }
 
 export function createStopLabels(
