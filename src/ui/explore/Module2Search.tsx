@@ -8,6 +8,8 @@ import {
   type KeyboardEvent,
 } from "react";
 
+import { ArrowLeft, X } from "lucide-react";
+
 import {
   boundSearchQuery,
   DEMO_SEARCH_INDEX,
@@ -126,33 +128,21 @@ export const Module2Search = ({
 
   return (
     <div
-      className="flex h-full w-full flex-col overflow-hidden bg-[#F6F8FA] font-sans"
+      className="flex h-full w-full flex-col overflow-hidden bg-white font-sans"
       onKeyDown={handleKeyDown}
     >
-      <header className="px-4 pt-5 pb-3">
+      <header className="border-b border-slate-100 px-4 pt-5 pb-3">
         <div className="mb-2 px-1 text-[11px] font-bold tracking-[0.16em] text-slate-400 uppercase">
           PILIH {contextLabel}
         </div>
-        <div className="flex min-h-[52px] w-full items-center rounded-2xl border border-slate-200 bg-white px-3 shadow-sm focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100">
+        <div className="flex min-h-[52px] w-full items-center rounded-2xl border border-slate-200 bg-slate-50/80 px-3 transition-colors focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20">
           <button
             type="button"
             onClick={() => (pending ? setPending(null) : onBack())}
-            className="mr-2 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl text-slate-700 transition-colors hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-95"
+            className="mr-1 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-slate-600 transition-colors hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-95"
             aria-label={pending ? "Kembali ke hasil pencarian" : "Kembali"}
           >
-            <svg
-              className="h-5 w-5 stroke-[2.4]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <ArrowLeft className="h-5 w-5 stroke-[2.2]" aria-hidden="true" />
           </button>
           <label className="sr-only" htmlFor="location-search-input">
             Cari {contextLabel}
@@ -172,30 +162,39 @@ export const Module2Search = ({
             <button
               type="button"
               onClick={() => runSearch("")}
-              className="ml-2 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              className="ml-1 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-slate-400 transition-colors hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
               aria-label="Hapus pencarian"
             >
-              <span aria-hidden="true" className="text-xl leading-none">
-                ×
-              </span>
+              <X className="h-4 w-4 stroke-[2.2]" aria-hidden="true" />
             </button>
           )}
         </div>
       </header>
 
-      <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-5">
-        <div className="rounded-[24px] border border-slate-100/90 bg-white shadow-[0_10px_30px_-4px_rgba(0,0,0,0.08),0_4px_12px_-2px_rgba(0,0,0,0.04)]">
-          <div className="border-b border-slate-100 px-4 py-3">
+      <main className="min-h-0 flex-1 overflow-y-auto pb-6">
+        {outcome.state === "results" && (
+          <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2">
             <p
-              className="text-xs leading-5 text-slate-600"
+              className="text-xs font-medium text-slate-500"
               role="status"
               aria-live="polite"
             >
               {getOutcomeMessage(outcome, pending, selectionMessage)}
             </p>
           </div>
+        )}
+        {outcome.state !== "results" && (
+          <p
+            className="sr-only"
+            role="status"
+            aria-live="polite"
+          >
+            {getOutcomeMessage(outcome, pending, selectionMessage)}
+          </p>
+        )}
 
-          {pending ? (
+        {pending ? (
+          <div className="px-4 py-2">
             <ConfirmationPanel
               pending={pending}
               catalog={searchItems}
@@ -205,14 +204,15 @@ export const Module2Search = ({
               }}
               onResolve={handleResolution}
             />
-          ) : (
-            <SearchOutcomePanel
-              outcome={outcome}
-              onRetry={() => runSearch(searchTerm)}
-              onSelect={handleSelectItem}
-            />
-          )}
-        </div>
+          </div>
+        ) : (
+          <SearchOutcomePanel
+            outcome={outcome}
+            onRetry={() => runSearch(searchTerm)}
+            onSelect={handleSelectItem}
+            onQuickSelect={(query) => runSearch(query)}
+          />
+        )}
       </main>
     </div>
   );

@@ -32,6 +32,7 @@ export type AstaraMapSurfaceProps = Readonly<{
   routeState: MapRouteState;
   status: AstaraMapStatus;
   showRecoveryAction: boolean;
+  showLoadingStatus?: boolean;
   toggleRef: RefObject<HTMLButtonElement | null>;
   className?: string;
 }>;
@@ -50,12 +51,18 @@ export const AstaraMapSurface = ({
   routeState,
   status,
   showRecoveryAction,
+  showLoadingStatus = true,
   toggleRef,
   className,
 }: AstaraMapSurfaceProps) => {
   const markerFeatures = payload?.decisionMarkers.features ?? [];
   const activeStepLabel = getActiveStepLabel(payload, activeStepId);
-  const statusPanel = getStatusPanel(status, routeState, hasPayload);
+  const statusPanel = getStatusPanel(
+    status,
+    routeState,
+    hasPayload,
+    showLoadingStatus,
+  );
   const rootClassName = [
     "astara-map relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-100",
     className,
@@ -121,16 +128,18 @@ export const AstaraMapSurface = ({
                   )}
                 </div>
               )}
-              <ul
-                className="flex max-w-full flex-wrap gap-2 rounded-xl bg-white/95 px-3 py-2 text-[11px] text-slate-700 shadow-sm backdrop-blur"
-                aria-label="Legenda peta"
-              >
-                {MAP_LEGEND.map((entry) => (
-                  <li key={entry.id} className="min-w-0 break-words">
-                    {entry.label}
-                  </li>
-                ))}
-              </ul>
+              {hasPayload && (
+                <ul
+                  className="flex max-w-full flex-wrap gap-2 rounded-xl bg-white/95 px-3 py-2 text-[11px] text-slate-700 shadow-sm backdrop-blur"
+                  aria-label="Legenda peta"
+                >
+                  {MAP_LEGEND.map((entry) => (
+                    <li key={entry.id} className="min-w-0 break-words">
+                      {entry.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className="pointer-events-auto flex min-w-0 flex-col items-start gap-2">
@@ -246,6 +255,7 @@ function getStatusPanel(
   status: AstaraMapStatus,
   routeState: MapRouteState,
   hasPayload: boolean,
+  showLoadingStatus = true,
 ): StatusPanel | undefined {
   if (status === "ready" && routeState === "supported" && hasPayload) {
     return undefined;
@@ -267,6 +277,9 @@ function getStatusPanel(
     };
   }
   if (status === "loading") {
+    if (!showLoadingStatus) {
+      return undefined;
+    }
     return {
       message: "Memuat peta. Instruksi rute tetap tersedia di kartu.",
       role: "status",
@@ -284,12 +297,7 @@ function getStatusPanel(
     };
   }
   if (!hasPayload) {
-    return {
-      message: "Pilih rute untuk melihat jalurnya.",
-      role: "status",
-      tone: "border-slate-200 bg-white/95 text-slate-700",
-      retry: false,
-    };
+    return undefined;
   }
   if (routeState === "unavailable") {
     return {

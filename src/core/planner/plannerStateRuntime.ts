@@ -63,6 +63,7 @@ export class PlannerStateRuntime implements PlannerController {
     if (isActiveRouteState(this.state.state)) invalidateToSelection(this);
     this.retryOperation = null;
     this.mapAttempt = 0;
+    const isCatalogPending = this.state.operation?.kind === "catalog";
     this.update({
       ...this.state,
       [context]: location,
@@ -73,8 +74,8 @@ export class PlannerStateRuntime implements PlannerController {
         this.state.catalog,
       ),
       route: null,
-      message: undefined,
-      operation: null,
+      message: isCatalogPending ? this.state.message : undefined,
+      operation: isCatalogPending ? this.state.operation : null,
       retryAvailable: false,
       mapRetryAvailable: false,
       detailOpen: false,
@@ -87,6 +88,7 @@ export class PlannerStateRuntime implements PlannerController {
     if (isActiveRouteState(this.state.state)) invalidateToSelection(this);
     this.retryOperation = null;
     this.mapAttempt = 0;
+    const isCatalogPending = this.state.operation?.kind === "catalog";
     this.update({
       ...this.state,
       departAt,
@@ -97,8 +99,8 @@ export class PlannerStateRuntime implements PlannerController {
         this.state.catalog,
       ),
       route: null,
-      message: undefined,
-      operation: null,
+      message: isCatalogPending ? this.state.message : undefined,
+      operation: isCatalogPending ? this.state.operation : null,
       retryAvailable: false,
       mapRetryAvailable: false,
       detailOpen: false,

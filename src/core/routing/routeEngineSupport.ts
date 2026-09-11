@@ -137,13 +137,29 @@ export function createRouteEngineIndex(
     frequencies.sort(compareFrequencies);
   }
 
+  const tripsById = createUniqueMap(snapshot.trips, (trip) => trip.id);
+  const tripsByStopId = new Map<string, GtfsTrip[]>();
+  for (const [tripId, stopTimes] of stopTimesByTrip.entries()) {
+    const trip = tripsById.get(tripId);
+    if (!trip) continue;
+    for (const stopTime of stopTimes) {
+      const list = tripsByStopId.get(stopTime.stopId) ?? [];
+      list.push(trip);
+      tripsByStopId.set(stopTime.stopId, list);
+    }
+  }
+  for (const trips of tripsByStopId.values()) {
+    trips.sort(compareTrips);
+  }
+
   return {
     snapshot,
     stopsById: createUniqueMap(snapshot.stops, (stop) => stop.id),
     routesById: createUniqueMap(snapshot.routes, (route) => route.id),
-    tripsById: createUniqueMap(snapshot.trips, (trip) => trip.id),
+    tripsById,
     stopTimesByTrip,
     frequenciesByTrip,
+    tripsByStopId,
   };
 }
 
@@ -185,7 +201,7 @@ export function findTripRideOptions(
   options: TripRideSearchOptions,
 ): readonly TripRideOption[] {
   const results: TripRideOption[] = [];
-  const tripEntries = [...options.index.tripsById.values()].sort(compareTrips);
+  const tripEntries = options.index.tripsByStopId.get(options.stopId) ?? [];
 
   for (const trip of tripEntries) {
     const route = options.index.routesById.get(trip.routeId);

@@ -24,7 +24,7 @@ export function runBoundedSearch(context: SearchContext):
       lineage: RouteLineage;
     }>
   | Readonly<{ state: "failed"; failure: RouteSelectionFailure }> {
-  const queue: SearchState[] = [createInitialState(context)];
+  const queue: SearchState[] = createInitialStates(context);
   const seenStates = new Set<string>();
   const candidates: RouteCandidate[] = [];
   let processedStates = 0;
@@ -219,6 +219,28 @@ function uniqueRouteCandidates(
     }
   }
   return [...unique.values()];
+}
+
+function createInitialStates(context: SearchContext): SearchState[] {
+  const base = createInitialState(context);
+  const states: SearchState[] = [base];
+  const edges =
+    context.transferEdgesByFromStop.get(context.request.planning.originId) ?? [];
+  for (const edge of edges) {
+    const walkingLeg = createWalkingLeg(edge, 0);
+    states.push({
+      stopId: edge.to.stopId,
+      readyAtSeconds:
+        context.requestedSeconds + getTransferDurationSeconds(edge),
+      legs: [walkingLeg],
+      rides: [],
+      usedTripIds: new Set(),
+      usedEdgeIds: new Set([edge.edgeId]),
+      transferCount: 0,
+      decisionPointCount: 1,
+    });
+  }
+  return states;
 }
 
 function createInitialState(context: SearchContext): SearchState {

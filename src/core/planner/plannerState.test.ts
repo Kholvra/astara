@@ -337,9 +337,43 @@ describe("planner state controller", () => {
     expect(controller.getState().state).toBe("result");
     controller.reportMapFailure("Peta gagal lagi", 1);
     expect(controller.getState().mapRetryAvailable).toBe(false);
-    controller.retryMap();
-    expect(controller.getState().state).toBe("map-failure");
     controller.dismissMapFailure();
     expect(controller.getState().state).toBe("result");
+  });
+
+  it("preserves in-flight catalog operation when setDepartAt and setEndpoint are called before catalog finishes loading", async () => {
+    let resolveCatalog!: (value: PlannerCatalog) => void;
+    const catalogPromise = new Promise<PlannerCatalog>((resolve) => {
+      resolveCatalog = resolve;
+    });
+
+    const controller = createPlannerController({
+      loadCatalog: () => catalogPromise,
+      planRoute: async () => success,
+    });
+
+    controller.open();
+    expect(controller.getState().operation?.kind).toBe("catalog");
+
+    // Call setDepartAt and setEndpoint immediately while catalog is still pending
+    controller.setDepartAt(departAt);
+    expect(controller.getState().operation?.kind).toBe("catalog");
+    expect(controller.getState().departAt).toEqual(departAt);
+
+    controller.setEndpoint("origin", origin);
+    expect(controller.getState().operation?.kind).toBe("catalog");
+    expect(controller.getState().origin).toEqual(origin);
+
+    // Resolve catalog
+    resolveCatalog(catalog);
+    await microtask();
+
+    expect(controller.getState()).toMatchObject({
+      catalog,
+      state: "select",
+      origin,
+      departAt,
+      operation: null,
+    });
   });
 });

@@ -5,6 +5,13 @@
   min-width: 44px;
   min-height: 44px;
 }
+
+.astara-map .maplibregl-ctrl-top-right {
+  top: 50% !important;
+  transform: translateY(-50%);
+  right: 14px !important;
+  margin: 0 !important;
+}
 @theme {
   --font-sans:
     var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
