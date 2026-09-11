@@ -1,6 +1,14 @@
 "use client";
 
-import { BusFront, ChevronRight, MapPin } from "lucide-react";
+import {
+  BusFront,
+  ChevronRight,
+  Compass,
+  Landmark,
+  MapPin,
+  Search,
+  Trophy,
+} from "lucide-react";
 
 import { resolveSearchSelection } from "./searchSelectionController";
 import { SearchTrustBlock } from "./SearchTrustBlock";
@@ -22,36 +30,109 @@ export type SearchOutcomePanelProps = {
   outcome: SearchQueryOutcome;
   onRetry: () => void;
   onSelect: (item: SearchResultItem) => void;
+  onQuickSelect?: (query: string) => void;
 };
+
+const QUICK_SUGGESTIONS = [
+  {
+    id: "monas",
+    name: "Monas",
+    query: "Monas",
+    subtitle: "Halte BRT Koridor 1 & 2",
+    icon: <Landmark className="h-4 w-4 text-emerald-700" />,
+  },
+  {
+    id: "blok-m",
+    name: "Blok M",
+    query: "Blok M",
+    subtitle: "Terminal & Integrasi MRT",
+    icon: <BusFront className="h-4 w-4 text-emerald-700" />,
+  },
+  {
+    id: "bundaran-hi",
+    name: "Bundaran HI",
+    query: "Bundaran HI",
+    subtitle: "Halte Ikonik Koridor 1",
+    icon: <Compass className="h-4 w-4 text-emerald-700" />,
+  },
+  {
+    id: "gbk",
+    name: "Gelora Bung Karno",
+    query: "GBK",
+    subtitle: "Halte Koridor 1",
+    icon: <Trophy className="h-4 w-4 text-emerald-700" />,
+  },
+] as const;
 
 export const SearchOutcomePanel = ({
   outcome,
   onRetry,
   onSelect,
+  onQuickSelect,
 }: SearchOutcomePanelProps) => {
   if (outcome.state === "idle") {
     return (
-      <div className="px-4 py-8 text-center text-sm leading-6 text-slate-500">
-        Ketik nama halte, rute, atau tempat. Astara hanya mencari data lokal
-        yang tersedia.
+      <div className="px-4 pt-4 pb-6">
+        <div className="mb-2.5 px-1 text-[11px] font-bold tracking-[0.14em] text-slate-400 uppercase">
+          PILIHAN CEPAT
+        </div>
+        <div className="grid gap-2">
+          {QUICK_SUGGESTIONS.map((suggestion) => (
+            <button
+              key={suggestion.id}
+              type="button"
+              onClick={() => onQuickSelect?.(suggestion.query)}
+              className="flex min-h-[56px] w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3.5 py-2.5 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+            >
+              <span
+                aria-hidden="true"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-200/60 bg-white"
+              >
+                {suggestion.icon}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm leading-5 font-bold text-slate-900">
+                  {suggestion.name}
+                </span>
+                <span className="block text-xs leading-4 text-slate-500">
+                  {suggestion.subtitle}
+                </span>
+              </span>
+              <ChevronRight
+                className="h-4 w-4 shrink-0 text-slate-400"
+                aria-hidden="true"
+              />
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50/60 p-3.5 text-center">
+          <p className="text-xs leading-5 text-slate-500">
+            Ketik nama halte, rute, atau tempat. Astara mencari langsung dari data TransJakarta lokal.
+          </p>
+        </div>
       </div>
     );
   }
 
   if (outcome.state === "index_unavailable") {
     return (
-      <div className="space-y-3 px-4 py-5">
-        <p className="text-sm leading-6 text-slate-700">
-          Pencarian halte sedang tidak tersedia. Coba lagi atau pilih halte dari
-          daftar.
-        </p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="min-h-11 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-        >
-          Coba lagi
-        </button>
+      <div className="pb-6">
+        <div className="space-y-3 px-4 py-6 text-center">
+          <p className="text-sm font-semibold text-slate-800">
+            Pencarian halte sedang tidak tersedia
+          </p>
+          <p className="text-xs text-slate-500">
+            Coba lagi atau pilih halte dari daftar alternatif di bawah.
+          </p>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="min-h-11 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          >
+            Coba lagi
+          </button>
+        </div>
         <AlternativeList
           alternatives={outcome.alternatives}
           onSelect={onSelect}
@@ -62,10 +143,18 @@ export const SearchOutcomePanel = ({
 
   if (outcome.state === "no_result") {
     return (
-      <div className="space-y-3 px-4 py-5">
-        <p className="text-sm leading-6 text-slate-700">
-          Tidak menemukan “{outcome.query}”. Coba nama halte atau rute lain.
-        </p>
+      <div className="pb-6">
+        <div className="px-4 py-8 text-center">
+          <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+            <Search className="h-5 w-5 stroke-[2.2]" />
+          </div>
+          <p className="text-sm font-bold text-slate-800">
+            Tidak menemukan “{outcome.query}”
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            Coba gunakan nama halte atau nomor koridor lain di sekitar.
+          </p>
+        </div>
         <AlternativeList
           alternatives={outcome.alternatives}
           onSelect={onSelect}
@@ -96,11 +185,11 @@ const AlternativeList = ({ alternatives, onSelect }: AlternativeListProps) => {
   if (alternatives.length === 0) return null;
 
   return (
-    <div>
-      <p className="mb-2 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+    <div className="pt-2">
+      <div className="border-y border-slate-100 bg-slate-50/70 px-4 py-2 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
         HALTE YANG BISA DIPILIH
-      </p>
-      <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+      </div>
+      <div className="divide-y divide-slate-100">
         {alternatives.map((item) => (
           <SearchResultButton key={item.id} result={item} onSelect={onSelect} />
         ))}
