@@ -33,6 +33,9 @@ export type AstaraMapSurfaceProps = Readonly<{
   status: AstaraMapStatus;
   showRecoveryAction: boolean;
   showLoadingStatus?: boolean;
+  showStatusPanel?: boolean;
+  showLegend?: boolean;
+  showDecisionMarkers?: boolean;
   toggleRef: RefObject<HTMLButtonElement | null>;
   className?: string;
 }>;
@@ -52,17 +55,22 @@ export const AstaraMapSurface = ({
   status,
   showRecoveryAction,
   showLoadingStatus = true,
+  showStatusPanel = true,
+  showLegend = true,
+  showDecisionMarkers = true,
   toggleRef,
   className,
 }: AstaraMapSurfaceProps) => {
   const markerFeatures = payload?.decisionMarkers.features ?? [];
   const activeStepLabel = getActiveStepLabel(payload, activeStepId);
-  const statusPanel = getStatusPanel(
-    status,
-    routeState,
-    hasPayload,
-    showLoadingStatus,
-  );
+  const statusPanel = showStatusPanel
+    ? getStatusPanel(
+        status,
+        routeState,
+        hasPayload,
+        showLoadingStatus,
+      )
+    : undefined;
   const rootClassName = [
     "astara-map relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-100",
     className,
@@ -128,7 +136,7 @@ export const AstaraMapSurface = ({
                   )}
                 </div>
               )}
-              {hasPayload && (
+              {showLegend && hasPayload && (
                 <ul
                   className="flex max-w-full flex-wrap gap-2 rounded-xl bg-white/95 px-3 py-2 text-[11px] text-slate-700 shadow-sm backdrop-blur"
                   aria-label="Legenda peta"
@@ -143,7 +151,7 @@ export const AstaraMapSurface = ({
             </div>
 
             <div className="pointer-events-auto flex min-w-0 flex-col items-start gap-2">
-              {markerFeatures.length > 0 && (
+              {showDecisionMarkers && markerFeatures.length > 0 && (
                 <div className="max-h-44 w-full max-w-sm overflow-y-auto rounded-xl bg-white/95 p-2 shadow-sm backdrop-blur">
                   <p className="px-2 pb-1 text-[11px] font-bold tracking-wide text-slate-500 uppercase">
                     Titik keputusan

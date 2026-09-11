@@ -99,9 +99,10 @@ describe("RouteSummarySheet", () => {
 
     expect(html).toContain("Koridor 1");
     expect(html).toContain("Langsung");
-    expect(html).toContain("Data terbatas");
+    expect(html).toContain("Rp3.500");
     expect(html).toContain("route-card-heading");
     expect(html).toContain("Langkah Perjalanan");
+    expect(html).not.toContain("Data terbatas");
     // Should NOT contain academic reason walls of text
     expect(html).not.toContain("Kenapa rute ini dipilih?");
   });

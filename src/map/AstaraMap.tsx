@@ -49,6 +49,9 @@ export type AstaraMapProps = {
   className?: string;
   showRecoveryAction?: boolean;
   showLoadingStatus?: boolean;
+  showStatusPanel?: boolean;
+  showLegend?: boolean;
+  showDecisionMarkers?: boolean;
   userLocation?: GeoCoordinate | null;
 };
 
@@ -63,6 +66,9 @@ export const AstaraMap = ({
   className,
   showRecoveryAction = true,
   showLoadingStatus,
+  showStatusPanel,
+  showLegend,
+  showDecisionMarkers,
   userLocation,
 }: AstaraMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -405,6 +411,9 @@ export const AstaraMap = ({
       routeState={routeState}
       showRecoveryAction={showRecoveryAction}
       showLoadingStatus={showLoadingStatus ?? Boolean(route)}
+      showStatusPanel={showStatusPanel}
+      showLegend={showLegend}
+      showDecisionMarkers={showDecisionMarkers}
       status={status}
       toggleRef={toggleRef}
       className={className}

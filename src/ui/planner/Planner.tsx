@@ -323,6 +323,9 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
           styleUrl={mapStyleUrl}
           showRecoveryAction={false}
           showLoadingStatus={false}
+          showStatusPanel={false}
+          showLegend={false}
+          showDecisionMarkers={false}
           userLocation={userLocation}
           route={snapshot.route?.mapData}
           onMapFailure={() => {

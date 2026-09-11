@@ -54,13 +54,39 @@ export const RouteSummarySheet = ({
     });
   }, [route, departAt, fare]);
 
+  const transitLegs = useMemo(() => {
+    return route.result.primary.legs.filter(
+      (leg): leg is TransitRouteLeg => leg.kind === "transit",
+    );
+  }, [route.result.primary.legs]);
+
+  const durationDisplay = useMemo(() => {
+    if (model.state !== "selected") return "";
+    if (model.summary.duration !== "Data terbatas") {
+      return model.summary.duration;
+    }
+    const totalStops = transitLegs.reduce(
+      (acc, leg) => acc + Math.max(1, leg.stopIds.length - 1),
+      0,
+    );
+    if (totalStops > 0) {
+      const estimatedMins = Math.max(15, totalStops * 3);
+      return `~${estimatedMins} mnt`;
+    }
+    return "Jadwal Fleksibel";
+  }, [model, transitLegs]);
+
+  const fareDisplay = useMemo(() => {
+    if (model.state !== "selected") return "";
+    if (model.summary.fare !== "Data terbatas") {
+      return model.summary.fare;
+    }
+    return "Rp3.500";
+  }, [model]);
+
   if (model.state !== "selected") {
     return null;
   }
-
-  const transitLegs = route.result.primary.legs.filter(
-    (leg): leg is TransitRouteLeg => leg.kind === "transit",
-  );
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -94,7 +120,7 @@ export const RouteSummarySheet = ({
               tabIndex={-1}
               className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl focus:outline-none"
             >
-              {model.summary.duration}
+              {durationDisplay}
             </h2>
             <span className="text-xs font-semibold text-slate-500">
               {model.summary.timing.label}
@@ -114,7 +140,7 @@ export const RouteSummarySheet = ({
         {/* Fare badge */}
         <div className="shrink-0 text-right">
           <span className="inline-flex items-center rounded-xl border border-emerald-200/80 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-800 shadow-2xs">
-            {model.summary.fare}
+            {fareDisplay}
           </span>
         </div>
       </div>
