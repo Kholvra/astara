@@ -115,15 +115,22 @@ export const Module1Explore = ({
   mapNotice,
   onMapRetry,
 }: Module1Props) => {
-  const [isExpanded, setIsExpanded] = useState(planEnabled || Boolean(route));
+  const [localExpanded, setLocalExpanded] = useState(planEnabled);
+  const isExpanded = stepsOpen ?? localExpanded;
   const dragStartYRef = useRef<number | null>(null);
   const dragMovedRef = useRef(false);
 
   useEffect(() => {
-    if (planEnabled || route) {
-      setIsExpanded(true);
+    if (planEnabled) {
+      setLocalExpanded(true);
     }
-  }, [planEnabled, route]);
+  }, [planEnabled]);
+
+  const handleToggle = (open?: boolean) => {
+    const next = open ?? !isExpanded;
+    setLocalExpanded(next);
+    onStepsToggle?.(next);
+  };
 
   const handlePointerDown = (e: PointerEvent<HTMLButtonElement>) => {
     dragStartYRef.current = e.clientY;
@@ -154,11 +161,11 @@ export const Module1Explore = ({
     }
 
     if (deltaY > 30) {
-      setIsExpanded(false);
+      handleToggle(false);
     } else if (deltaY < -30) {
-      setIsExpanded(true);
+      handleToggle(true);
     } else if (!dragMovedRef.current) {
-      setIsExpanded((prev) => !prev);
+      handleToggle();
     }
   };
 
@@ -251,7 +258,9 @@ export const Module1Explore = ({
 
       <div
         id="explore-bottom-sheet-container"
-        className="absolute right-0 bottom-0 left-0 z-30 flex max-h-[calc(100%-236px)] flex-col transition-all duration-300 ease-in-out"
+        className={`absolute right-0 bottom-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out ${
+          isExpanded ? "max-h-[calc(100%-236px)]" : "max-h-[220px]"
+        }`}
       >
         <div className="relative w-full">
           <div className="absolute right-4 -top-14 z-30">
@@ -280,6 +289,7 @@ export const Module1Explore = ({
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
+            onClick={() => handleToggle()}
             className="group mx-auto -mt-1 mb-2.5 flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing focus:outline-none"
           >
             <span className="h-1.5 w-12 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-400" />
@@ -290,8 +300,8 @@ export const Module1Explore = ({
               route={route}
               departAt={departAt}
               fare={fare}
-              stepsOpen={stepsOpen}
-              onStepsToggle={onStepsToggle}
+              stepsOpen={isExpanded}
+              onStepsToggle={handleToggle}
               mapNotice={mapNotice}
               onMapRetry={onMapRetry}
             />

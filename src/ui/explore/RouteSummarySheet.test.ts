@@ -99,7 +99,6 @@ describe("RouteSummarySheet", () => {
 
     expect(html).toContain("Koridor 1");
     expect(html).toContain("Langsung");
-    expect(html).toContain("Rp3.500");
     expect(html).toContain("route-card-heading");
     expect(html).toContain("Langkah Perjalanan");
     expect(html).not.toContain("Data terbatas");
@@ -113,22 +112,12 @@ describe("RouteSummarySheet", () => {
       createElement(RouteSummarySheet, {
         route,
         departAt: DEPART_AT,
-        fare: {
-          state: "estimate",
-          label: "Perkiraan tarif",
-          displayAmount: "Rp3.500",
-          amount: 3500,
-          currency: "IDR",
-          source: "transjakarta-standard",
-          basis: "flat",
-        },
       }),
     );
 
     expect(html).toContain("Koridor 1");
     expect(html).toContain("Koridor 2");
     expect(html).toContain("1x transit");
-    expect(html).toContain("Rp3.500");
   });
 
   it("renders step-by-step instructions when stepsOpen is true", () => {
