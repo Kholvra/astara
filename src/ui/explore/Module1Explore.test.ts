@@ -173,4 +173,79 @@ describe("Module1Explore markup and layout contract", () => {
     expect(html).toContain("explore-bottom-sheet-handle");
     expect(html).not.toContain("Tutup detail");
   });
+
+  it("renders clear route-not-found notice and action buttons when plannerState is no-route", () => {
+    const html = renderToStaticMarkup(
+      createElement(Module1Explore, {
+        activeContext: "origin",
+        origin: {
+          id: "monas",
+          name: "Monas",
+          type: "stop_or_route",
+          coordinates: [106.8272, -6.1754],
+          source: "gtfs_local",
+          confidence: "high",
+          verification: "Terverifikasi",
+        },
+        destination: {
+          id: "blok-m",
+          name: "Blok M",
+          type: "stop_or_route",
+          coordinates: [106.7981, -6.2442],
+          source: "gtfs_local",
+          confidence: "high",
+          verification: "Terverifikasi",
+        },
+        plannerState: "no-route",
+        plannerMessage: "Tidak ada rute yang cocok. Coba halte atau waktu lain.",
+        onOpenSearch: () => undefined,
+        onSelectDestination: () => undefined,
+        onSwap: () => undefined,
+        onReset: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("route-not-found-card");
+    expect(html).toContain("Rute Tidak Ditemukan");
+    expect(html).toContain("Tidak ada rute yang cocok. Coba halte atau waktu lain.");
+    expect(html).toContain("Tukar Arah");
+    expect(html).toContain("Ganti Tujuan");
+    expect(html).toContain("Reset");
+    expect(html).not.toContain("TUJUAN POPULER");
+    expect(html).not.toContain("chip-monas");
+  });
+
+  it("renders loading card when plannerState is loading", () => {
+    const html = renderToStaticMarkup(
+      createElement(Module1Explore, {
+        activeContext: "origin",
+        origin: {
+          id: "monas",
+          name: "Monas",
+          type: "stop_or_route",
+          coordinates: [106.8272, -6.1754],
+          source: "gtfs_local",
+          confidence: "high",
+          verification: "Terverifikasi",
+        },
+        destination: {
+          id: "blok-m",
+          name: "Blok M",
+          type: "stop_or_route",
+          coordinates: [106.7981, -6.2442],
+          source: "gtfs_local",
+          confidence: "high",
+          verification: "Terverifikasi",
+        },
+        plannerState: "loading",
+        onOpenSearch: () => undefined,
+        onSelectDestination: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("route-loading-card");
+    expect(html).toContain("Mencari rute terbaik…");
+    expect(html).toContain("Menghubungkan Monas ke Blok M");
+    expect(html).not.toContain("TUJUAN POPULER");
+  });
 });

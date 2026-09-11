@@ -12,6 +12,7 @@ import {
   ArrowUpDown,
   ChevronRight,
   Landmark,
+  Loader2,
   RotateCcw,
   Search,
   ShoppingBag,
@@ -24,7 +25,10 @@ import type {
   RoutableLocation,
   SearchContext,
 } from "~/core/search/search.types";
-import type { PlannerPlanSuccess } from "~/core/planner/plannerTypes";
+import type {
+  PlannerPlanSuccess,
+  PlannerState,
+} from "~/core/planner/plannerTypes";
 import type { DepartAtInput, FareStatus } from "~/core/timing/tripTiming";
 import { LocationButton } from "~/ui/map/LocationButton";
 import type { LocationRequestFailure } from "~/ui/map/locationReader";
@@ -82,6 +86,8 @@ type Module1Props = {
   timingControls?: ReactNode;
   children?: ReactNode;
   route?: PlannerPlanSuccess | null;
+  plannerState?: PlannerState;
+  plannerMessage?: string;
   departAt?: DepartAtInput | null;
   fare?: FareStatus;
   stepsOpen?: boolean;
@@ -108,6 +114,8 @@ export const Module1Explore = ({
   timingControls,
   children,
   route,
+  plannerState,
+  plannerMessage,
   departAt,
   fare,
   stepsOpen,
@@ -115,17 +123,24 @@ export const Module1Explore = ({
   mapNotice,
   onMapRetry,
 }: Module1Props) => {
-  const [localExpanded, setLocalExpanded] = useState(planEnabled);
+  const isFailureState =
+    !route &&
+    (plannerState === "no-route" ||
+      plannerState === "error" ||
+      plannerState === "stale-data");
+  const isLoadingState = !route && plannerState === "loading";
+
+  const [localExpanded, setLocalExpanded] = useState(planEnabled || isFailureState);
   const isExpanded = stepsOpen ?? localExpanded;
   const dragStartYRef = useRef<number | null>(null);
   const dragMovedRef = useRef(false);
   const sheetContentRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (planEnabled) {
+    if (planEnabled || isFailureState) {
       setLocalExpanded(true);
     }
-  }, [planEnabled]);
+  }, [planEnabled, isFailureState]);
 
   const handleToggle = (open?: boolean) => {
     const next = open ?? !isExpanded;
@@ -323,6 +338,85 @@ export const Module1Explore = ({
               mapNotice={mapNotice}
               onMapRetry={onMapRetry}
             />
+          ) : isFailureState ? (
+            <div
+              id="route-not-found-card"
+              role="status"
+              aria-live="polite"
+              className="flex flex-col gap-3 rounded-2xl border border-amber-200/90 bg-amber-50/70 p-4 text-amber-950 shadow-2xs"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-200/80 text-amber-800 shadow-2xs">
+                  <AlertCircle className="h-5 w-5 stroke-[2.2]" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2
+                    id="route-card-recovery-heading"
+                    tabIndex={-1}
+                    className="text-base font-bold tracking-tight text-slate-900 focus:outline-none"
+                  >
+                    {plannerState === "no-route"
+                      ? "Rute Tidak Ditemukan"
+                      : "Kendala Perhitungan Rute"}
+                  </h2>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                    {plannerMessage ??
+                      (plannerState === "no-route"
+                        ? `Tidak ada rute transit yang menghubungkan ${origin?.name ?? "lokasi asal"} ke ${destination?.name ?? "tujuan"} pada waktu yang dipilih. Coba pilih halte terdekat lainnya atau tukar arah perjalanan.`
+                        : "Terjadi kendala saat menghitung rute. Coba lagi atau ubah pilihan halte.")}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex flex-wrap items-center gap-2 border-t border-amber-200/60 pt-2.5">
+                {onSwap && origin && destination && (
+                  <button
+                    type="button"
+                    onClick={onSwap}
+                    className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-amber-300/80 bg-white px-3 py-1.5 text-xs font-bold text-amber-950 shadow-2xs transition-colors hover:bg-amber-100/70 active:scale-95 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:outline-none"
+                  >
+                    <ArrowUpDown className="h-3.5 w-3.5 text-amber-700" />
+                    <span>Tukar Arah</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onOpenSearch("destination")}
+                  className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs transition-colors hover:bg-slate-800 active:scale-95 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:outline-none"
+                >
+                  <Search className="h-3.5 w-3.5" />
+                  <span>Ganti Tujuan</span>
+                </button>
+                {onReset && (
+                  <button
+                    type="button"
+                    onClick={onReset}
+                    className="inline-flex min-h-9 cursor-pointer items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 active:scale-95 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    <span>Reset</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : isLoadingState ? (
+            <div
+              id="route-loading-card"
+              role="status"
+              aria-live="polite"
+              className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 text-slate-700 shadow-2xs"
+            >
+              <Loader2 className="h-5 w-5 shrink-0 animate-spin text-emerald-600" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-slate-900">
+                  Mencari rute terbaik…
+                </p>
+                <p className="text-xs text-slate-500">
+                  Menghubungkan {origin?.name ?? "asal"} ke {destination?.name ?? "tujuan"}
+                </p>
+              </div>
+            </div>
           ) : (
             <>
               <div className="mb-2.5 text-[11px] font-bold tracking-wider text-slate-400 uppercase">

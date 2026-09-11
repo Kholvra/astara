@@ -277,6 +277,8 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
         planEnabled={snapshot.state === "ready"}
         timingControls={timingControls}
         route={snapshot.route}
+        plannerState={snapshot.state}
+        plannerMessage={snapshot.message}
         departAt={snapshot.departAt}
         stepsOpen={
           snapshot.state === "detail" ||
