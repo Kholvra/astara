@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { resolveCurrentLocation } from "~/core/search/currentLocationResolution";
+import type { GeoCoordinate } from "~/core/geojson/geometry";
 import type {
   CurrentLocationReading,
   RoutableLocation,
@@ -19,7 +20,6 @@ import { Module2Search } from "~/ui/explore/Module2Search";
 import { api } from "~/trpc/react";
 import { createPlannerClient } from "./plannerClient";
 import { PlannerMap } from "./PlannerMap";
-import { PlannerRouteView } from "./PlannerRouteView";
 import { PlannerStatus } from "./PlannerStatus";
 import { usePlanner } from "./usePlanner";
 import { usePlannerHistory } from "./usePlannerHistory";
@@ -40,10 +40,10 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
   const [screen, setScreen] = useState<PlannerScreen>("explore");
   const [activeContext, setActiveContext] = useState<SearchContext>("origin");
   const [initialQuery, setInitialQuery] = useState("");
+  const [userLocation, setUserLocation] = useState<GeoCoordinate | null>(null);
   const currentDepartAtRef = useRef<DepartAtValidation | null>(null);
   const [locationMessage, setLocationMessage] = useState<string>();
   const [mapRetryNonce, setMapRetryNonce] = useState(0);
-  const [mapDismissed, setMapDismissed] = useState(false);
   const focusContextRef = useRef<SearchContext | null>(null);
   const routeRef = useRef<unknown>(null);
   const {
@@ -86,7 +86,6 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
   useEffect(() => {
     if (routeRef.current !== snapshot.route) {
       routeRef.current = snapshot.route;
-      setMapDismissed(false);
       setMapRetryNonce(0);
     }
   }, [snapshot.route]);
@@ -149,6 +148,7 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
     context: SearchContext,
     reading: CurrentLocationReading,
   ) => {
+    setUserLocation(reading.coordinates);
     const resolution = resolveCurrentLocation(
       reading,
       snapshot.catalog?.items ?? [],
@@ -194,27 +194,6 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
     setScreen("explore");
     setInitialQuery("");
     setLocationMessage(undefined);
-    replaceHistoryMarker("explore");
-  };
-
-  const handleBack = () => {
-    if (snapshot.state === "map-failure") {
-      controller.back();
-      return;
-    }
-    if (
-      (snapshot.state === "result" || snapshot.state === "detail") &&
-      (historyMarkerRef.current === "result" ||
-        historyMarkerRef.current === "detail")
-    ) {
-      window.history.back();
-      return;
-    }
-    controller.back();
-  };
-
-  const handleEdit = () => {
-    controller.edit();
     replaceHistoryMarker("explore");
   };
 
@@ -264,62 +243,6 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
     </div>
   );
 
-  if (
-    snapshot.route &&
-    (snapshot.state === "result" ||
-      snapshot.state === "detail" ||
-      snapshot.state === "map-failure")
-  ) {
-    return (
-      <PlannerRouteView
-        mapStyleUrl={mapStyleUrl}
-        mapRetryNonce={mapRetryNonce}
-        mapDismissed={mapDismissed}
-        snapshot={snapshot}
-        onBack={handleBack}
-        onEdit={handleEdit}
-        onSwap={handleSwap}
-        onReset={handleReset}
-        onMapRetry={
-          snapshot.mapRetryAvailable
-            ? () => {
-                setMapDismissed(false);
-                setMapRetryNonce((value) => value + 1);
-                controller.retryMap();
-              }
-            : undefined
-        }
-        onMapDismiss={() => {
-          setMapDismissed(true);
-          controller.dismissMapFailure();
-        }}
-        onMapFailure={(mapAttempt) =>
-          controller.reportMapFailure(undefined, mapAttempt)
-        }
-        onStepsToggle={(open) => {
-          if (open) {
-            controller.openDetail();
-            if (
-              snapshot.state === "map-failure" &&
-              snapshot.mapReturnState === "result"
-            ) {
-              pushHistoryMarker("detail");
-            }
-          } else {
-            controller.closeDetail();
-            if (
-              snapshot.state === "detail" ||
-              (snapshot.state === "map-failure" &&
-                snapshot.mapReturnState === "detail")
-            ) {
-              replaceHistoryMarker("result");
-            }
-          }
-        }}
-      />
-    );
-  }
-
   if (screen === "search") {
     return (
       <main data-planner-state={snapshot.state} className="h-full w-full">
@@ -353,11 +276,65 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
         origin={snapshot.origin}
         planEnabled={snapshot.state === "ready"}
         timingControls={timingControls}
+        route={snapshot.route}
+        plannerState={snapshot.state}
+        plannerMessage={snapshot.message}
+        departAt={snapshot.departAt}
+        stepsOpen={
+          snapshot.route
+            ? snapshot.state === "detail" ||
+              (snapshot.state === "map-failure" &&
+                snapshot.mapReturnState === "detail" &&
+                snapshot.detailOpen)
+            : undefined
+        }
+        onStepsToggle={(open) => {
+          if (open) {
+            controller.openDetail();
+            if (
+              snapshot.state === "map-failure" &&
+              snapshot.mapReturnState === "result"
+            ) {
+              pushHistoryMarker("detail");
+            }
+          } else {
+            controller.closeDetail();
+            if (
+              snapshot.state === "detail" ||
+              (snapshot.state === "map-failure" &&
+                snapshot.mapReturnState === "detail")
+            ) {
+              replaceHistoryMarker("result");
+            }
+          }
+        }}
+        mapNotice={
+          snapshot.state === "map-failure"
+            ? "Peta tidak dapat dimuat. Langkah perjalanan tetap dapat diikuti."
+            : undefined
+        }
+        onMapRetry={
+          snapshot.mapRetryAvailable
+            ? () => {
+                setMapRetryNonce((value) => value + 1);
+                controller.retryMap();
+              }
+            : undefined
+        }
       >
         <PlannerMap
+          key={mapRetryNonce > 0 ? `map-retry-${mapRetryNonce}` : undefined}
           styleUrl={mapStyleUrl}
           showRecoveryAction={false}
           showLoadingStatus={false}
+          showStatusPanel={false}
+          showLegend={false}
+          showDecisionMarkers={false}
+          userLocation={userLocation}
+          route={snapshot.route?.mapData}
+          onMapFailure={() => {
+            controller.reportMapFailure(undefined, mapRetryNonce);
+          }}
         />
       </Module1Explore>
     </main>

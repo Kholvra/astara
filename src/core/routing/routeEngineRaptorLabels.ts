@@ -11,9 +11,10 @@ export type RaptorLabel = Readonly<{
   requiredRouteId?: string;
   rides: readonly TripRideOption[];
   accessEdges: readonly TransferEdge[];
-  transferEdges: readonly TransferEdge[];
+  transferEdges: readonly (TransferEdge | undefined)[];
   usedTripIds: ReadonlySet<string>;
   usedEdgeIds: ReadonlySet<string>;
+  usedRouteSwitchIds: ReadonlySet<string>;
   transferCount: number;
   decisionPointCount: number;
 }>;
@@ -32,6 +33,7 @@ export function createInitialLabels(
       transferEdges: [],
       usedTripIds: new Set(),
       usedEdgeIds: new Set(),
+      usedRouteSwitchIds: new Set(),
       transferCount: 0,
       decisionPointCount: 0,
     }),
@@ -53,6 +55,7 @@ export function createInitialLabels(
         transferEdges: [],
         usedTripIds: new Set(),
         usedEdgeIds: new Set([edge.edgeId]),
+        usedRouteSwitchIds: new Set(),
         transferCount: 0,
         decisionPointCount: 1,
       }),
@@ -73,6 +76,7 @@ export function createRideLabel(
     transferEdges: label.transferEdges,
     usedTripIds: new Set([...label.usedTripIds, ride.trip.id]),
     usedEdgeIds: label.usedEdgeIds,
+    usedRouteSwitchIds: label.usedRouteSwitchIds,
     transferCount: label.transferCount,
     decisionPointCount: label.decisionPointCount + 1,
   });
@@ -92,9 +96,43 @@ export function createTransferLabel(
     transferEdges: [...label.transferEdges, edge],
     usedTripIds: label.usedTripIds,
     usedEdgeIds: new Set([...label.usedEdgeIds, edge.edgeId]),
+    usedRouteSwitchIds: label.usedRouteSwitchIds,
     transferCount: label.transferCount + 1,
     decisionPointCount: label.decisionPointCount + 1,
   });
+}
+
+export function createRouteSwitchLabel(
+  label: RaptorLabel,
+  fromRouteId: string,
+  toRouteId: string,
+): RaptorLabel {
+  const routeSwitchId = createRouteSwitchId(
+    label.stopId,
+    fromRouteId,
+    toRouteId,
+  );
+  return createRaptorLabel({
+    stopId: label.stopId,
+    readyAtSeconds: label.readyAtSeconds,
+    requiredRouteId: toRouteId,
+    rides: label.rides,
+    accessEdges: label.accessEdges,
+    transferEdges: [...label.transferEdges, undefined],
+    usedTripIds: label.usedTripIds,
+    usedEdgeIds: label.usedEdgeIds,
+    usedRouteSwitchIds: new Set([...label.usedRouteSwitchIds, routeSwitchId]),
+    transferCount: label.transferCount + 1,
+    decisionPointCount: label.decisionPointCount + 1,
+  });
+}
+
+export function createRouteSwitchId(
+  stopId: string,
+  fromRouteId: string,
+  toRouteId: string,
+): string {
+  return `${stopId}:${fromRouteId}->${toRouteId}`;
 }
 
 export function groupLabels(
@@ -187,7 +225,8 @@ function dominates(left: RaptorLabel, right: RaptorLabel): boolean {
   }
   if (
     !isSubset(left.usedTripIds, right.usedTripIds) ||
-    !isSubset(left.usedEdgeIds, right.usedEdgeIds)
+    !isSubset(left.usedEdgeIds, right.usedEdgeIds) ||
+    !isSubset(left.usedRouteSwitchIds, right.usedRouteSwitchIds)
   ) {
     return false;
   }
@@ -212,7 +251,8 @@ function canDiscardLabel(left: RaptorLabel, right: RaptorLabel): boolean {
     left.transferCount === right.transferCount &&
     compareRaptorLabels(left, right) <= 0 &&
     isSubset(left.usedTripIds, right.usedTripIds) &&
-    isSubset(left.usedEdgeIds, right.usedEdgeIds)
+    isSubset(left.usedEdgeIds, right.usedEdgeIds) &&
+    isSubset(left.usedRouteSwitchIds, right.usedRouteSwitchIds)
   );
 }
 
@@ -224,7 +264,7 @@ function isSubset(
 }
 
 function getWalkingDistance(label: RaptorLabel): number | undefined {
-  const edges = [...label.accessEdges, ...label.transferEdges];
+  const edges = getTransferEdges(label);
   if (edges.some((edge) => edge.walkingPath?.distanceMeters === undefined)) {
     return undefined;
   }
@@ -235,14 +275,14 @@ function getWalkingDistance(label: RaptorLabel): number | undefined {
 }
 
 function getWalkingDurationKnown(label: RaptorLabel): number {
-  const edges = [...label.accessEdges, ...label.transferEdges];
+  const edges = getTransferEdges(label);
   return edges.every((edge) => edge.walkingPath?.durationSeconds !== undefined)
     ? 0
     : 1;
 }
 
 function getEvidenceRank(label: RaptorLabel): number {
-  const edges = [...label.accessEdges, ...label.transferEdges];
+  const edges = getTransferEdges(label);
   if (
     edges.some(
       (edge) =>
@@ -271,8 +311,15 @@ function createRaptorLabelKey(label: RaptorLabelFields): string {
           `${ride.route.id}:${ride.trip.id}:${ride.serviceDate}:${ride.fromStopTime.stopId}-${ride.toStopTime.stopId}:${ride.scheduled.actualDepartureSeconds}-${ride.scheduled.actualArrivalSeconds}`,
       )
       .join(","),
-    label.transferEdges.map((edge) => edge.edgeId).join(","),
+    label.transferEdges.map((edge) => edge?.edgeId ?? "").join(","),
+    [...label.usedRouteSwitchIds].join(","),
   ].join("|");
+}
+
+function getTransferEdges(label: RaptorLabel): readonly TransferEdge[] {
+  return [...label.accessEdges, ...label.transferEdges].filter(
+    (edge): edge is TransferEdge => edge !== undefined,
+  );
 }
 
 function compareOptionalNumbers(

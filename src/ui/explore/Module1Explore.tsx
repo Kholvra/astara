@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Landmark,
   RotateCcw,
+  Search,
   ShoppingBag,
   Trophy,
   X,
@@ -23,8 +24,14 @@ import type {
   RoutableLocation,
   SearchContext,
 } from "~/core/search/search.types";
+import type {
+  PlannerPlanSuccess,
+  PlannerState,
+} from "~/core/planner/plannerTypes";
+import type { DepartAtInput, FareStatus } from "~/core/timing/tripTiming";
 import { LocationButton } from "~/ui/map/LocationButton";
 import type { LocationRequestFailure } from "~/ui/map/locationReader";
+import { RouteSummarySheet } from "./RouteSummarySheet";
 
 export type DestinationItem = {
   id: string;
@@ -77,6 +84,15 @@ type Module1Props = {
   planEnabled?: boolean;
   timingControls?: ReactNode;
   children?: ReactNode;
+  route?: PlannerPlanSuccess | null;
+  plannerState?: PlannerState;
+  plannerMessage?: string;
+  departAt?: DepartAtInput | null;
+  fare?: FareStatus;
+  stepsOpen?: boolean;
+  onStepsToggle?: (open: boolean) => void;
+  mapNotice?: string;
+  onMapRetry?: () => void;
 };
 
 export const Module1Explore = ({
@@ -96,16 +112,39 @@ export const Module1Explore = ({
   planEnabled = false,
   timingControls,
   children,
+  route,
+  plannerState: _plannerState,
+  plannerMessage: _plannerMessage,
+  departAt,
+  fare,
+  stepsOpen,
+  onStepsToggle,
+  mapNotice,
+  onMapRetry,
 }: Module1Props) => {
-  const [isExpanded, setIsExpanded] = useState(planEnabled);
+  const [localExpanded, setLocalExpanded] = useState(planEnabled);
+  const isExpanded = stepsOpen ?? localExpanded;
   const dragStartYRef = useRef<number | null>(null);
   const dragMovedRef = useRef(false);
+  const touchStartYRef = useRef<number | null>(null);
+  const sheetContentRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (planEnabled) {
-      setIsExpanded(true);
+      setLocalExpanded(true);
+    } else if (!route) {
+      setLocalExpanded(false);
     }
-  }, [planEnabled]);
+  }, [planEnabled, route]);
+
+  const handleToggle = (open?: boolean) => {
+    const next = open ?? !isExpanded;
+    if (!next && sheetContentRef.current) {
+      sheetContentRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    setLocalExpanded(next);
+    onStepsToggle?.(next);
+  };
 
   const handlePointerDown = (e: PointerEvent<HTMLButtonElement>) => {
     dragStartYRef.current = e.clientY;
@@ -135,12 +174,51 @@ export const Module1Explore = ({
       // ignore
     }
 
-    if (deltaY > 30) {
-      setIsExpanded(false);
-    } else if (deltaY < -30) {
-      setIsExpanded(true);
-    } else if (!dragMovedRef.current) {
-      setIsExpanded((prev) => !prev);
+    if (deltaY > 20) {
+      handleToggle(false);
+    } else if (deltaY < -20) {
+      handleToggle(true);
+    }
+
+    if (dragMovedRef.current) {
+      setTimeout(() => {
+        dragMovedRef.current = false;
+      }, 50);
+    }
+  };
+
+  const handleClick = () => {
+    if (dragMovedRef.current) {
+      dragMovedRef.current = false;
+      return;
+    }
+    handleToggle();
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLElement>) => {
+    if (e.touches.length === 1 && e.touches[0]) {
+      touchStartYRef.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLElement>) => {
+    if (touchStartYRef.current === null) return;
+    const endTouch = e.changedTouches[0];
+    if (!endTouch) {
+      touchStartYRef.current = null;
+      return;
+    }
+    const deltaY = endTouch.clientY - touchStartYRef.current;
+    touchStartYRef.current = null;
+
+    if (!isExpanded && deltaY < -30) {
+      handleToggle(true);
+    } else if (
+      isExpanded &&
+      deltaY > 40 &&
+      (sheetContentRef.current?.scrollTop ?? 0) <= 0
+    ) {
+      handleToggle(false);
     }
   };
 
@@ -148,63 +226,94 @@ export const Module1Explore = ({
     <div className="relative h-full w-full overflow-hidden bg-slate-100 font-sans">
       <div className="absolute inset-0 z-0 h-full w-full">{children}</div>
 
-      <header className="absolute top-6 right-0 left-0 z-20 px-4 sm:top-11">
-        <div className="rounded-[28px] border border-slate-100/90 bg-white/95 p-3 shadow-lg backdrop-blur-md">
-          <div className="mb-2 flex items-center justify-between px-1">
-            <span className="text-[11px] font-bold tracking-[0.16em] text-slate-400 uppercase">
-              RENCANA PERJALANAN
-            </span>
-            {onReset && (origin || destination) ? (
+      <header className="absolute top-4 right-0 left-0 z-20 px-4 sm:top-8">
+        <div className="mx-auto max-w-lg">
+          {!origin && !destination ? (
+            <div className="relative">
+              <span className="sr-only">RENCANA PERJALANAN</span>
               <button
                 type="button"
-                onClick={onReset}
-                className="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none active:scale-95"
-                title="Reset pilihan asal dan tujuan"
-              >
-                <RotateCcw className="h-3 w-3" />
-                <span>Reset</span>
-              </button>
-            ) : null}
-          </div>
-          <div className="relative grid gap-2">
-            <div className="relative">
-              <EndpointField
-                context="origin"
-                location={origin}
-                active={activeContext === "origin"}
-                onClick={() => onOpenSearch("origin")}
-              />
-              {onSwap && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSwap();
-                  }}
-                  disabled={!origin && !destination}
-                  aria-label="Tukar asal dan tujuan"
-                  title="Tukar asal dan tujuan"
-                  className="group absolute left-[28px] top-full z-10 mt-1 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-500 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none after:absolute after:-inset-1.5 after:content-['']"
-                >
-                  <ArrowUpDown className="h-3 w-3 transition-transform duration-300 group-hover:rotate-180" />
-                </button>
-              )}
-            </div>
-            <div>
-              <EndpointField
-                context="destination"
-                location={destination}
-                active={activeContext === "destination"}
                 onClick={() => onOpenSearch("destination")}
-              />
+                className="flex min-h-[54px] w-full cursor-pointer items-center gap-3.5 rounded-full border border-slate-200/80 bg-white px-4.5 py-2 text-left shadow-sm transition-colors hover:bg-slate-50/90 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                aria-label="Cari tujuan rute"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+                  <Search className="h-4.5 w-4.5 stroke-[2.2]" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-slate-800">
+                    Mau ke mana hari ini?
+                  </span>
+                  <span className="block text-xs text-slate-400 truncate">
+                    Ketik halte, stasiun, atau destinasi tujuan…
+                  </span>
+                </span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-400">
+                  <ChevronRight className="h-4 w-4 stroke-[2.2]" />
+                </span>
+              </button>
             </div>
-          </div>
+          ) : (
+            <div className="rounded-3xl border border-slate-200/90 bg-white/95 p-3.5 shadow-lg shadow-slate-900/5 backdrop-blur-md">
+              <div className="mb-2 flex items-center justify-between px-1">
+                <span className="text-[11px] font-bold tracking-[0.16em] text-slate-400 uppercase">
+                  RENCANA PERJALANAN
+                </span>
+                {onReset && (origin || destination) ? (
+                  <button
+                    type="button"
+                    onClick={onReset}
+                    className="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none active:scale-95"
+                    title="Reset pilihan asal dan tujuan"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    <span>Reset</span>
+                  </button>
+                ) : null}
+              </div>
+              <div className="relative grid gap-2">
+                <div className="relative">
+                  <EndpointField
+                    context="origin"
+                    location={origin}
+                    active={activeContext === "origin"}
+                    onClick={() => onOpenSearch("origin")}
+                  />
+                  {onSwap && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSwap();
+                      }}
+                      disabled={!origin && !destination}
+                      aria-label="Tukar asal dan tujuan"
+                      title="Tukar asal dan tujuan"
+                      className="group absolute left-[28px] top-full z-10 mt-1 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-500 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none after:absolute after:-inset-1.5 after:content-['']"
+                    >
+                      <ArrowUpDown className="h-3 w-3 transition-transform duration-300 group-hover:rotate-180" />
+                    </button>
+                  )}
+                </div>
+                <div>
+                  <EndpointField
+                    context="destination"
+                    location={destination}
+                    active={activeContext === "destination"}
+                    onClick={() => onOpenSearch("destination")}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
       <div
         id="explore-bottom-sheet-container"
-        className="absolute right-0 bottom-0 left-0 z-30 flex max-h-[calc(100%-236px)] flex-col transition-all duration-300 ease-in-out"
+        className={`absolute right-0 bottom-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out ${
+          isExpanded ? "max-h-[calc(100%-236px)]" : "max-h-[220px]"
+        }`}
       >
         <div className="relative w-full">
           <div className="absolute right-4 -top-14 z-30">
@@ -218,44 +327,65 @@ export const Module1Explore = ({
         </div>
 
         <section
+          ref={sheetContentRef}
           id="explore-bottom-sheet"
-          className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-t-[32px] border-t border-slate-100 bg-white px-5 pt-2.5 pb-6 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] [scrollbar-width:none] [-ms-overflow-style:none] sm:pb-8 [&::-webkit-scrollbar]:hidden"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          className={`flex min-h-0 flex-1 flex-col rounded-t-[32px] border-t border-slate-100 bg-white px-5 pt-2.5 pb-6 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] [scrollbar-width:none] [-ms-overflow-style:none] sm:pb-8 [&::-webkit-scrollbar]:hidden ${
+            isExpanded ? "overflow-y-auto" : "overflow-hidden"
+          }`}
         >
           <button
             type="button"
+            id="explore-bottom-sheet-handle"
             aria-expanded={isExpanded}
             aria-controls="explore-bottom-sheet"
             aria-label={
               isExpanded
-                ? "Tutup detail rencana perjalanan"
-                : "Buka detail rencana perjalanan"
+                ? "Tutup rencana perjalanan"
+                : "Buka rencana perjalanan"
             }
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
-            className="group mx-auto -mt-1 mb-2.5 flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing focus:outline-none"
+            onClick={handleClick}
+            className="group mx-auto -mt-1 mb-2.5 flex h-7 w-full cursor-grab touch-none items-center justify-center rounded-full active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
           >
-            <span className="h-1.5 w-12 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-400" />
+            <span className="h-1.5 w-12 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-400 group-active:bg-slate-500" />
           </button>
 
-          <div className="mb-2.5 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-            TUJUAN POPULER
-          </div>
+          {route ? (
+            <RouteSummarySheet
+              route={route}
+              departAt={departAt}
+              fare={fare}
+              stepsOpen={isExpanded}
+              onStepsToggle={handleToggle}
+              mapNotice={mapNotice}
+              onMapRetry={onMapRetry}
+            />
+          ) : (
+            <>
+              <div className="mb-2.5 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+                TUJUAN POPULER
+              </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 pb-3">
-            {POPULAR_DESTINATIONS.map((destinationItem) => (
-              <button
-                key={destinationItem.id}
-                id={`chip-${destinationItem.id}`}
-                type="button"
-                onClick={() => onSelectDestination(destinationItem.query)}
-                className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 shadow-xs transition-all hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-95"
-              >
-                <span aria-hidden="true">{destinationItem.icon}</span>
-                <span>{destinationItem.name}</span>
-              </button>
-            ))}
-          </div>
+              <div className="flex flex-wrap items-center gap-2.5 pb-3">
+                {POPULAR_DESTINATIONS.map((destinationItem) => (
+                  <button
+                    key={destinationItem.id}
+                    id={`chip-${destinationItem.id}`}
+                    type="button"
+                    onClick={() => onSelectDestination(destinationItem.query)}
+                    className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-800 shadow-xs transition-all hover:border-emerald-300 hover:bg-emerald-50/40 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-95"
+                  >
+                    <span aria-hidden="true">{destinationItem.icon}</span>
+                    <span>{destinationItem.name}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           {locationMessage && (
             <div
@@ -290,7 +420,7 @@ export const Module1Explore = ({
             }`}
           >
             <div className="min-h-0 overflow-hidden">
-              {timingControls ? (
+              {timingControls && !route ? (
                 <div className="mt-1">{timingControls}</div>
               ) : null}
             </div>
@@ -324,7 +454,7 @@ const EndpointField = ({
       type="button"
       onClick={onClick}
       aria-label={`${label}: ${location?.name ?? placeholder}`}
-      className={`flex min-h-14 w-full items-center gap-3 rounded-2xl border px-3.5 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${active ? "border-emerald-400 bg-emerald-50/60" : "border-slate-200 bg-white hover:border-emerald-200"}`}
+      className={`flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-2xl border px-3.5 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${active ? "border-emerald-400 bg-emerald-50/60" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70"}`}
     >
       <span
         aria-hidden="true"

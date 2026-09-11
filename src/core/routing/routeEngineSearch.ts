@@ -6,6 +6,8 @@ import {
   compareRaptorLabels,
   createInitialLabels,
   createRideLabel,
+  createRouteSwitchId,
+  createRouteSwitchLabel,
   createTransferLabel,
   groupLabels,
   type RaptorLabel,
@@ -17,7 +19,6 @@ import {
   consumeLabelExpansion,
   hasDestinationAtOrBelowRound,
   hasZeroTransferDestination,
-  isRouteServingStop,
   isWithinSearchBudget,
   isWithinSearchDeadline,
   searchExhaustedFailure,
@@ -25,6 +26,8 @@ import {
 } from "./routeEngineSearchSupport";
 import {
   createRideTargetStopIds,
+  createDestinationRouteIds,
+  createSameStopRouteIds,
   isUsefulTransferEdge,
 } from "./routeEngineTargetSupport";
 import type {
@@ -56,6 +59,7 @@ export function runRaptorSearch(context: SearchContext): RaptorSearchResult {
   };
   let markedLabels = groupLabels(createInitialLabels(context));
   const destinationLabels: RaptorLabel[] = [];
+  const destinationRouteIds = createDestinationRouteIds(context);
   let routeScanCount = 0;
   let round = 0;
 
@@ -73,20 +77,23 @@ export function runRaptorSearch(context: SearchContext): RaptorSearchResult {
       return searchExhaustedFailure();
     }
     const nextMarkedLabels = new Map<string, RaptorLabel[]>();
+    const pendingDestinationRouteIds = new Set(
+      routeIds.routeIds.filter((routeId) => destinationRouteIds.has(routeId)),
+    );
 
     for (const routeId of routeIds.routeIds) {
-      const directDestinationFound =
-        hasZeroTransferDestination(destinationLabels);
-      if (
-        directDestinationFound &&
-        !isRouteServingStop(
-          context,
-          routeId,
-          context.request.planning.destinationId,
-        )
-      ) {
+      const destinationFoundThisRound = hasDestinationAtOrBelowRound(
+        destinationLabels,
+        round,
+      );
+      if (destinationFoundThisRound && pendingDestinationRouteIds.size === 0) {
+        break;
+      }
+      if (destinationFoundThisRound && !destinationRouteIds.has(routeId)) {
         continue;
       }
+      const directDestinationFound =
+        hasZeroTransferDestination(destinationLabels);
       if (routeScanCount >= context.config.maxSearchStates) {
         return searchExhaustedFailure();
       }
@@ -114,6 +121,7 @@ export function runRaptorSearch(context: SearchContext): RaptorSearchResult {
       if (scanResult.state === "exhausted") {
         return searchExhaustedFailure();
       }
+      pendingDestinationRouteIds.delete(routeId);
     }
 
     if (hasDestinationAtOrBelowRound(destinationLabels, round)) {
@@ -322,6 +330,28 @@ function processRide(
       continue;
     }
     addRaptorLabel(nextMarkedLabels, transferLabel);
+  }
+  for (const targetRouteId of createSameStopRouteIds(
+    context,
+    rideLabel.stopId,
+    ride.route.id,
+    round,
+  )) {
+    if (!isWithinSearchDeadline(context, budget)) {
+      return false;
+    }
+    const routeSwitchId = createRouteSwitchId(
+      rideLabel.stopId,
+      ride.route.id,
+      targetRouteId,
+    );
+    if (rideLabel.usedRouteSwitchIds.has(routeSwitchId)) {
+      continue;
+    }
+    addRaptorLabel(
+      nextMarkedLabels,
+      createRouteSwitchLabel(rideLabel, ride.route.id, targetRouteId),
+    );
   }
   return true;
 }

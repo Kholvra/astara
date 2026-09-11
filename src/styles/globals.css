@@ -26,10 +26,22 @@
   --color-astara-divider: #e2e8f0;
   --color-astara-emerald: #059669;
 
-  /* Koridor TransJakarta */
-  --color-corridor-red: #e11d48;
-  --color-corridor-blue: #2563eb;
-  --color-corridor-orange: #ea580c;
+  /* Koridor TransJakarta (SSOT: docs/design/DESIGN_TOKENS.md) */
+  --color-tj-1: var(--tj-corridor-1);
+  --color-tj-2: var(--tj-corridor-2);
+  --color-tj-3: var(--tj-corridor-3);
+  --color-tj-4: var(--tj-corridor-4);
+  --color-tj-5: var(--tj-corridor-5);
+  --color-tj-6: var(--tj-corridor-6);
+  --color-tj-7: var(--tj-corridor-7);
+  --color-tj-8: var(--tj-corridor-8);
+  --color-tj-9: var(--tj-corridor-9);
+  --color-tj-10: var(--tj-corridor-10);
+  --color-tj-11: var(--tj-corridor-11);
+  --color-tj-12: var(--tj-corridor-12);
+  --color-tj-13: var(--tj-corridor-13);
+  --color-tj-feeder: var(--tj-feeder);
+  --color-tj-mikrotrans: var(--tj-mikrotrans);
 
   /* Elevation Shadows */
   --shadow-sheet: 0 -8px 30px rgba(15, 23, 42, 0.06);
@@ -42,6 +54,23 @@
   ========================================
 */
 :root {
+  /* TransJakarta Official Corridor Tokens (SSOT: docs/design/DESIGN_TOKENS.md) */
+  --tj-corridor-1: #e11d48;
+  --tj-corridor-2: #2563eb;
+  --tj-corridor-3: #d97706;
+  --tj-corridor-4: #7c3aed;
+  --tj-corridor-5: #0d9488;
+  --tj-corridor-6: #16a34a;
+  --tj-corridor-7: #dc2626;
+  --tj-corridor-8: #9333ea;
+  --tj-corridor-9: #ea580c;
+  --tj-corridor-10: #4f46e5;
+  --tj-corridor-11: #0284c7;
+  --tj-corridor-12: #059669;
+  --tj-corridor-13: #c026d3;
+  --tj-feeder: #0284c7;
+  --tj-mikrotrans: #0284c7;
+
   --astara-design-tokens-color-bg-canvas: rgba(248, 250, 252, 1);
   --astara-design-tokens-color-bg-elevated: rgba(241, 245, 249, 1);
   --astara-design-tokens-color-bg-surface: rgba(255, 255, 255, 1);

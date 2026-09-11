@@ -274,7 +274,18 @@ export function collectMarkedRouteIds(
       }
     }
   }
-  return { state: "ready", routeIds: [...routeIds].sort(compareOrdinal) };
+  return {
+    state: "ready",
+    routeIds: [...routeIds].sort((left, right) => {
+      const leftDistance =
+        context.routeTransferDistanceToDestination.get(left) ??
+        Number.POSITIVE_INFINITY;
+      const rightDistance =
+        context.routeTransferDistanceToDestination.get(right) ??
+        Number.POSITIVE_INFINITY;
+      return leftDistance - rightDistance || compareOrdinal(left, right);
+    }),
+  };
 }
 
 function isRouteWithinTransferBudget(

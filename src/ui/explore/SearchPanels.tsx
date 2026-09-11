@@ -6,6 +6,7 @@ import {
   Compass,
   Landmark,
   MapPin,
+  RotateCcw,
   Search,
   Trophy,
 } from "lucide-react";
@@ -105,33 +106,40 @@ export const SearchOutcomePanel = ({
             </button>
           ))}
         </div>
-
-        <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50/60 p-3.5 text-center">
-          <p className="text-xs leading-5 text-slate-500">
-            Ketik nama halte, rute, atau tempat. Astara mencari langsung dari data TransJakarta lokal.
-          </p>
-        </div>
       </div>
     );
   }
 
   if (outcome.state === "index_unavailable") {
+    const hasAlternatives = outcome.alternatives.length > 0;
+
     return (
       <div className="pb-6">
-        <div className="space-y-3 px-4 py-6 text-center">
-          <p className="text-sm font-semibold text-slate-800">
+        <div className="flex flex-col items-center px-4 py-8 text-center sm:py-10">
+          <div className="mb-3.5 flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200/80 bg-slate-50 text-slate-500 shadow-2xs">
+            <BusFront className="h-6 w-6 stroke-[1.8] text-slate-600" />
+          </div>
+
+          <h3 className="text-sm font-bold text-slate-900 sm:text-base">
             Pencarian halte sedang tidak tersedia
+          </h3>
+
+          <p className="mt-1 max-w-xs text-xs leading-5 text-slate-500">
+            {hasAlternatives
+              ? "Coba lagi atau pilih halte dari daftar alternatif di bawah."
+              : "Indeks data transit belum siap. Silakan coba muat ulang."}
           </p>
-          <p className="text-xs text-slate-500">
-            Coba lagi atau pilih halte dari daftar alternatif di bawah.
-          </p>
-          <button
-            type="button"
-            onClick={onRetry}
-            className="min-h-11 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-          >
-            Coba lagi
-          </button>
+
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 text-xs font-bold text-slate-800 shadow-2xs transition-all hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-800 active:scale-95 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+              <span>Coba lagi</span>
+            </button>
+          </div>
         </div>
         <AlternativeList
           alternatives={outcome.alternatives}
@@ -164,14 +172,24 @@ export const SearchOutcomePanel = ({
   }
 
   return (
-    <div className="divide-y divide-slate-100">
-      {outcome.results.map((result) => (
-        <SearchResultButton
-          key={result.id}
-          result={result}
-          onSelect={onSelect}
-        />
-      ))}
+    <div className="px-4 pt-4 pb-6">
+      <div className="mb-2.5 flex items-center justify-between px-1">
+        <span className="text-[11px] font-bold tracking-[0.14em] text-slate-400 uppercase">
+          HASIL PENCARIAN
+        </span>
+        <span className="text-[11px] font-semibold text-slate-400">
+          {outcome.results.length} ditemukan
+        </span>
+      </div>
+      <div className="grid gap-2">
+        {outcome.results.map((result) => (
+          <SearchResultButton
+            key={result.id}
+            result={result}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
     </div>
   );
 };
@@ -185,11 +203,11 @@ const AlternativeList = ({ alternatives, onSelect }: AlternativeListProps) => {
   if (alternatives.length === 0) return null;
 
   return (
-    <div className="pt-2">
-      <div className="border-y border-slate-100 bg-slate-50/70 px-4 py-2 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-        HALTE YANG BISA DIPILIH
+    <div className="px-4 pt-2 pb-6">
+      <div className="mb-2.5 px-1 text-[11px] font-bold tracking-[0.14em] text-slate-400 uppercase">
+        HALTE ALTERNATIF
       </div>
-      <div className="divide-y divide-slate-100">
+      <div className="grid gap-2">
         {alternatives.map((item) => (
           <SearchResultButton key={item.id} result={item} onSelect={onSelect} />
         ))}
@@ -210,17 +228,17 @@ const SearchResultButton = ({ result, onSelect }: SearchResultButtonProps) => {
     <button
       type="button"
       onClick={() => onSelect(result)}
-      className="flex min-h-[64px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50 focus-visible:bg-emerald-50 focus-visible:outline-none"
+      className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3.5 py-2.5 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
       aria-label={`Pilih ${result.title}`}
     >
       <span
         aria-hidden="true"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-200/60 bg-white text-slate-700"
       >
         {isPlace ? (
-          <MapPin className="h-4 w-4" />
+          <MapPin className="h-4 w-4 text-emerald-700" />
         ) : (
-          <BusFront className="h-4 w-4" />
+          <BusFront className="h-4 w-4 text-emerald-700" />
         )}
       </span>
       <span className="min-w-0 flex-1">
@@ -284,7 +302,7 @@ export const ConfirmationPanel = ({
                   ),
                 )
               }
-              className="min-h-14 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:border-emerald-300 hover:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              className="min-h-14 w-full cursor-pointer rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-left text-sm font-semibold text-slate-800 transition-all hover:border-emerald-300 hover:bg-emerald-50 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
             >
               <span className="block break-words">{platform.label}</span>
               <span className="mt-1 block text-xs font-normal text-slate-500">
@@ -296,7 +314,7 @@ export const ConfirmationPanel = ({
         <button
           type="button"
           onClick={onCancel}
-          className="min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          className="min-h-11 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
         >
           Pilih hasil lain
         </button>
@@ -323,7 +341,7 @@ export const ConfirmationPanel = ({
             {pending.item.title}
           </p>
         </div>
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5">
           <p className="text-sm font-bold break-words text-slate-900">
             {pending.suggestedStop.title}
           </p>
@@ -331,31 +349,33 @@ export const ConfirmationPanel = ({
             Sekitar {Math.round(pending.distanceMeters)} m. {walkingCopy}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() =>
-            onResolve(
-              resolveSearchSelection(
-                {
-                  type: "confirm_place_conversion",
-                  item: pending.item,
-                  stopId: pending.suggestedStop.id,
-                },
-                catalog,
-              ),
-            )
-          }
-          className="min-h-11 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-        >
-          Gunakan halte ini
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-        >
-          Pilih hasil lain
-        </button>
+        <div className="grid gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              onResolve(
+                resolveSearchSelection(
+                  {
+                    type: "confirm_place_conversion",
+                    item: pending.item,
+                    stopId: pending.suggestedStop.id,
+                  },
+                  catalog,
+                ),
+              )
+            }
+            className="min-h-11 w-full cursor-pointer rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-2xs transition-all hover:bg-emerald-700 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          >
+            Gunakan halte ini
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="min-h-11 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          >
+            Pilih hasil lain
+          </button>
+        </div>
       </div>
     );
   }
@@ -378,30 +398,32 @@ export const ConfirmationPanel = ({
         confidence={pending.item.confidence}
         verification={pending.item.verification}
       />
-      <button
-        type="button"
-        onClick={() =>
-          onResolve(
-            resolveSearchSelection(
-              {
-                type: "confirm_low_confidence",
-                item: pending.item,
-              },
-              catalog,
-            ),
-          )
-        }
-        className="min-h-11 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-      >
-        Gunakan lokasi ini
-      </button>
-      <button
-        type="button"
-        onClick={onCancel}
-        className="min-h-11 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-      >
-        Pilih hasil lain
-      </button>
+      <div className="grid gap-2">
+        <button
+          type="button"
+          onClick={() =>
+            onResolve(
+              resolveSearchSelection(
+                {
+                  type: "confirm_low_confidence",
+                  item: pending.item,
+                },
+                catalog,
+              ),
+            )
+          }
+          className="min-h-11 w-full cursor-pointer rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-2xs transition-all hover:bg-emerald-700 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+        >
+          Gunakan lokasi ini
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="min-h-11 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+        >
+          Pilih hasil lain
+        </button>
+      </div>
     </div>
   );
 };
@@ -422,19 +444,19 @@ export function getOutcomeMessage(
     return "Arah peron dapat mengubah rute. Pilih salah satu sebelum melanjutkan.";
   }
   if (pending?.state === "place_conversion_required") {
-    return "Tempat belum menjadi halte. Konfirmasi halte lokal yang disarankan.";
+    return "Tempat belum menjadi halte. Konfirmasi halte yang disarankan.";
   }
   if (pending?.state === "low_confidence_confirmation") {
     return "Konfirmasi diperlukan karena kecocokan lokasi ini rendah.";
   }
   if (outcome.state === "results") {
-    return `${outcome.results.length} hasil lokal ditemukan.`;
+    return `${outcome.results.length} hasil ditemukan.`;
   }
   if (outcome.state === "index_unavailable") {
-    return "Pencarian lokal perlu dicoba lagi.";
+    return "Pencarian perlu dicoba lagi.";
   }
   if (outcome.state === "no_result") {
-    return "Tidak ada hasil lokal yang cocok.";
+    return "Tidak ada hasil yang cocok.";
   }
   return "Pencarian belum dimulai.";
 }

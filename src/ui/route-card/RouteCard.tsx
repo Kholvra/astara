@@ -304,7 +304,7 @@ const SelectedRouteCard = ({
               </div>
             )}
             {mapCompanion && (
-              <div className="max-w-full min-w-0 overflow-hidden">
+              <div className="h-72 sm:h-96 w-full max-w-full min-w-0 overflow-hidden rounded-2xl border border-slate-100 bg-slate-100">
                 {mapCompanion}
               </div>
             )}
