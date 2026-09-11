@@ -172,26 +172,20 @@ export const Module2Search = ({
       </header>
 
       <main className="min-h-0 flex-1 overflow-y-auto pb-6">
-        {outcome.state === "results" && (
-          <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-2">
-            <p
-              className="text-xs font-medium text-slate-500"
-              role="status"
-              aria-live="polite"
-            >
-              {getOutcomeMessage(outcome, pending, selectionMessage)}
+        {selectionMessage && (
+          <div className="mx-4 mt-3 flex items-start gap-2.5 rounded-2xl border border-amber-200/80 bg-amber-50/70 px-3.5 py-2.5 text-amber-900">
+            <p className="min-w-0 flex-1 text-xs leading-5 font-medium">
+              {selectionMessage}
             </p>
           </div>
         )}
-        {outcome.state !== "results" && (
-          <p
-            className="sr-only"
-            role="status"
-            aria-live="polite"
-          >
-            {getOutcomeMessage(outcome, pending, selectionMessage)}
-          </p>
-        )}
+        <p
+          className="sr-only"
+          role="status"
+          aria-live="polite"
+        >
+          {getOutcomeMessage(outcome, pending, selectionMessage)}
+        </p>
 
         {pending ? (
           <div className="px-4 py-2">

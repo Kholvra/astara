@@ -197,21 +197,21 @@ export const Module1Explore = ({
               <button
                 type="button"
                 onClick={() => onOpenSearch("destination")}
-                className="group flex min-h-[54px] w-full cursor-pointer items-center gap-3.5 rounded-full border border-slate-200/90 bg-white/95 px-4.5 py-2 text-left shadow-lg shadow-slate-900/5 backdrop-blur-md transition-all hover:border-emerald-300 hover:bg-white hover:shadow-xl active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                className="flex min-h-[54px] w-full cursor-pointer items-center gap-3.5 rounded-full border border-slate-200/80 bg-white px-4.5 py-2 text-left shadow-sm transition-colors hover:bg-slate-50/90 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
                 aria-label="Cari tujuan rute"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 transition-transform group-hover:scale-105 group-hover:bg-emerald-100">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
                   <Search className="h-4.5 w-4.5 stroke-[2.2]" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-slate-800 transition-colors group-hover:text-emerald-950">
+                  <span className="block text-sm font-bold text-slate-800">
                     Mau ke mana hari ini?
                   </span>
-                  <span className="block text-xs text-slate-400 transition-colors group-hover:text-slate-500 truncate">
+                  <span className="block text-xs text-slate-400 truncate">
                     Ketik halte, stasiun, atau destinasi tujuan…
                   </span>
                 </span>
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors group-hover:bg-emerald-50 group-hover:text-emerald-600">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-400">
                   <ChevronRight className="h-4 w-4 stroke-[2.2]" />
                 </span>
               </button>
@@ -413,7 +413,7 @@ const EndpointField = ({
       type="button"
       onClick={onClick}
       aria-label={`${label}: ${location?.name ?? placeholder}`}
-      className={`flex min-h-14 w-full items-center gap-3 rounded-2xl border px-3.5 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${active ? "border-emerald-400 bg-emerald-50/60" : "border-slate-200 bg-white hover:border-emerald-200"}`}
+      className={`flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-2xl border px-3.5 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${active ? "border-emerald-400 bg-emerald-50/60" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70"}`}
     >
       <span
         aria-hidden="true"

@@ -46,7 +46,7 @@ export const SearchTrustBlock = ({
 export function getSearchSourceLabel(source: SearchSource): string {
   switch (source) {
     case "gtfs_local":
-      return "Sumber: Data halte lokal";
+      return "Sumber: Data resmi TransJakarta";
     case "alias":
       return "Sumber: Alias terkurasi";
     case "session_gps":
