@@ -1,4 +1,4 @@
-import type { GtfsSnapshot } from "~/core/ingestion/gtfsTypes";
+import type { GtfsShapePoint, GtfsSnapshot } from "~/core/ingestion/gtfsTypes";
 import { sliceShapeBetweenStops } from "~/core/geojson/shapeSlicing";
 import type { TransferEdge } from "~/core/transfer/transferTypes";
 
@@ -8,12 +8,37 @@ import type {
   TransitRouteLeg,
   WalkingRouteLeg,
 } from "./routingTypes";
-import type { TripRideOption } from "./routeEngineSupport";
+import type { TripRideOption } from "./routeEngineRides";
+
+export type RouteLegMaterializationContext = Readonly<{
+  stopsById: ReadonlyMap<string, GtfsSnapshot["stops"][number]>;
+  shapePointsById: ReadonlyMap<string, readonly GtfsShapePoint[]>;
+}>;
+
+export function createRouteLegMaterializationContext(
+  snapshot: GtfsSnapshot,
+  stopsById: ReadonlyMap<string, GtfsSnapshot["stops"][number]>,
+): RouteLegMaterializationContext {
+  const shapePointsById = new Map<string, GtfsShapePoint[]>();
+  for (const point of snapshot.shapes) {
+    const points = shapePointsById.get(point.shapeId) ?? [];
+    points.push(point);
+    shapePointsById.set(point.shapeId, points);
+  }
+  for (const points of shapePointsById.values()) {
+    points.sort(
+      (left, right) =>
+        left.sequence - right.sequence ||
+        left.lineage.rowNumber - right.lineage.rowNumber,
+    );
+  }
+  return { stopsById, shapePointsById };
+}
 
 export function createTransitLeg(
   option: TripRideOption,
   legIndex: number,
-  snapshot: GtfsSnapshot,
+  context: RouteLegMaterializationContext,
 ): TransitRouteLeg {
   const routeGeometry = createGeometryReference(
     option.trip.shapeId,
@@ -21,7 +46,7 @@ export function createTransitLeg(
     option.toStopIndex + 1,
     option.fromStopTime.stopId,
     option.toStopTime.stopId,
-    snapshot,
+    context,
   );
   const timing: RouteLegTiming =
     option.scheduled.semantics === "exact"
@@ -101,16 +126,14 @@ function createGeometryReference(
   toStopSequence: number,
   fromStopId: string,
   toStopId: string,
-  snapshot: GtfsSnapshot,
+  context: RouteLegMaterializationContext,
 ): RouteGeometryReference {
   const shapePoints = shapeId
-    ? snapshot.shapes
-        .filter((point) => point.shapeId === shapeId)
-        .sort((left, right) => left.sequence - right.sequence)
+    ? (context.shapePointsById.get(shapeId) ?? [])
     : [];
 
-  const fromStop = snapshot.stops.find((stop) => stop.id === fromStopId);
-  const toStop = snapshot.stops.find((stop) => stop.id === toStopId);
+  const fromStop = context.stopsById.get(fromStopId);
+  const toStop = context.stopsById.get(toStopId);
   const slicedGeometry =
     fromStop && toStop
       ? sliceShapeBetweenStops({
