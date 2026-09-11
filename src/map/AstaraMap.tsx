@@ -46,6 +46,7 @@ export type AstaraMapProps = {
   defaultExpanded?: boolean;
   className?: string;
   showRecoveryAction?: boolean;
+  showLoadingStatus?: boolean;
 };
 
 export const AstaraMap = ({
@@ -58,6 +59,7 @@ export const AstaraMap = ({
   defaultExpanded = true,
   className,
   showRecoveryAction = true,
+  showLoadingStatus,
 }: AstaraMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -334,6 +336,7 @@ export const AstaraMap = ({
       payload={payload}
       routeState={routeState}
       showRecoveryAction={showRecoveryAction}
+      showLoadingStatus={showLoadingStatus ?? Boolean(route)}
       status={status}
       toggleRef={toggleRef}
       className={className}

@@ -32,6 +32,7 @@ export type AstaraMapSurfaceProps = Readonly<{
   routeState: MapRouteState;
   status: AstaraMapStatus;
   showRecoveryAction: boolean;
+  showLoadingStatus?: boolean;
   toggleRef: RefObject<HTMLButtonElement | null>;
   className?: string;
 }>;
@@ -50,12 +51,18 @@ export const AstaraMapSurface = ({
   routeState,
   status,
   showRecoveryAction,
+  showLoadingStatus = true,
   toggleRef,
   className,
 }: AstaraMapSurfaceProps) => {
   const markerFeatures = payload?.decisionMarkers.features ?? [];
   const activeStepLabel = getActiveStepLabel(payload, activeStepId);
-  const statusPanel = getStatusPanel(status, routeState, hasPayload);
+  const statusPanel = getStatusPanel(
+    status,
+    routeState,
+    hasPayload,
+    showLoadingStatus,
+  );
   const rootClassName = [
     "astara-map relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-100",
     className,
@@ -248,6 +255,7 @@ function getStatusPanel(
   status: AstaraMapStatus,
   routeState: MapRouteState,
   hasPayload: boolean,
+  showLoadingStatus = true,
 ): StatusPanel | undefined {
   if (status === "ready" && routeState === "supported" && hasPayload) {
     return undefined;
@@ -269,6 +277,9 @@ function getStatusPanel(
     };
   }
   if (status === "loading") {
+    if (!showLoadingStatus) {
+      return undefined;
+    }
     return {
       message: "Memuat peta. Instruksi rute tetap tersedia di kartu.",
       role: "status",
