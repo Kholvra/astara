@@ -268,6 +268,16 @@ export function createTransferEdges(
 export function mapRouteFailure(
   failure: Exclude<RouteSelectionResult, { state: "selected" }>,
 ): PlannerPlanFailure {
+  if (failure.code === "SEARCH_EXHAUSTED") {
+    return {
+      state: "failure",
+      kind: "error",
+      message:
+        "Pencarian rute terlalu kompleks untuk diselesaikan sekarang. Coba halte atau waktu lain.",
+      retryable: true,
+      routeFailure: failure,
+    };
+  }
   if (failure.state === "no-route") {
     return {
       state: "failure",
