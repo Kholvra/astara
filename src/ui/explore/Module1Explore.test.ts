@@ -178,7 +178,7 @@ describe("Module1Explore markup and layout contract", () => {
     expect(html).not.toContain("Tutup detail");
   });
 
-  it("renders clear route-not-found notice and action buttons when plannerState is no-route", () => {
+  it("delegates journey status to timing controls and displays popular destinations without redundant error card", () => {
     const html = renderToStaticMarkup(
       createElement(Module1Explore, {
         activeContext: "origin",
@@ -202,6 +202,11 @@ describe("Module1Explore markup and layout contract", () => {
         },
         plannerState: "no-route",
         plannerMessage: "Tidak ada rute yang cocok. Coba halte atau waktu lain.",
+        timingControls: createElement(
+          "div",
+          { id: "planner-status-section" },
+          "STATUS PERJALANAN",
+        ),
         onOpenSearch: () => undefined,
         onSelectDestination: () => undefined,
         onSwap: () => undefined,
@@ -209,13 +214,11 @@ describe("Module1Explore markup and layout contract", () => {
       }),
     );
 
-    expect(html).toContain("route-not-found-card");
-    expect(html).toContain("Rute tidak ditemukan");
-    expect(html).toContain("Tidak ada rute yang cocok. Coba halte atau waktu lain.");
-    expect(html).toContain("Tukar");
-    expect(html).toContain("Ubah");
+    expect(html).not.toContain("route-not-found-card");
+    expect(html).not.toContain("Rute tidak ditemukan");
     expect(html).toContain("TUJUAN POPULER");
     expect(html).toContain("chip-monas");
+    expect(html).toContain("planner-status-section");
     expect(html).toContain("overflow-hidden");
   });
 

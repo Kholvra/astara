@@ -115,7 +115,7 @@ export const Module1Explore = ({
   children,
   route,
   plannerState,
-  plannerMessage,
+  plannerMessage: _plannerMessage,
   departAt,
   fare,
   stepsOpen,
@@ -123,11 +123,6 @@ export const Module1Explore = ({
   mapNotice,
   onMapRetry,
 }: Module1Props) => {
-  const isFailureState =
-    !route &&
-    (plannerState === "no-route" ||
-      plannerState === "error" ||
-      plannerState === "stale-data");
   const isLoadingState = !route && plannerState === "loading";
 
   const [localExpanded, setLocalExpanded] = useState(planEnabled);
@@ -374,53 +369,6 @@ export const Module1Explore = ({
             />
           ) : (
             <>
-              {isFailureState && (
-                <div
-                  id="route-not-found-card"
-                  role="status"
-                  aria-live="polite"
-                  className="mb-3 flex items-center justify-between gap-2.5 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-3.5 py-2.5 text-amber-950 shadow-2xs"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-200/80 text-amber-800">
-                      <AlertCircle className="h-4 w-4 stroke-[2.2]" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-900 leading-tight">
-                        {plannerState === "no-route"
-                          ? "Rute tidak ditemukan"
-                          : "Kendala rute"}
-                      </p>
-                      <p className="text-[11px] text-slate-600 leading-tight truncate">
-                        {plannerMessage ?? "Pilih halte lain atau tukar arah"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {onSwap && origin && destination && (
-                      <button
-                        type="button"
-                        onClick={onSwap}
-                        className="inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-lg border border-amber-300/80 bg-white px-2.5 py-1 text-xs font-semibold text-amber-950 shadow-2xs transition-colors hover:bg-amber-50 active:scale-95 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:outline-none"
-                        title="Tukar arah perjalanan"
-                      >
-                        <ArrowUpDown className="h-3 w-3 text-amber-700" />
-                        <span>Tukar</span>
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => onOpenSearch("destination")}
-                      className="inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-slate-800 active:scale-95 focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:outline-none"
-                    >
-                      <Search className="h-3 w-3" />
-                      <span>Ubah</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {isLoadingState && (
                 <div
                   id="route-loading-card"
