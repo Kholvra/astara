@@ -119,6 +119,7 @@ export const Module1Explore = ({
   const isExpanded = stepsOpen ?? localExpanded;
   const dragStartYRef = useRef<number | null>(null);
   const dragMovedRef = useRef(false);
+  const sheetContentRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (planEnabled) {
@@ -128,6 +129,9 @@ export const Module1Explore = ({
 
   const handleToggle = (open?: boolean) => {
     const next = open ?? !isExpanded;
+    if (!next && sheetContentRef.current) {
+      sheetContentRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
     setLocalExpanded(next);
     onStepsToggle?.(next);
   };
@@ -160,13 +164,25 @@ export const Module1Explore = ({
       // ignore
     }
 
-    if (deltaY > 30) {
+    if (deltaY > 20) {
       handleToggle(false);
-    } else if (deltaY < -30) {
+    } else if (deltaY < -20) {
       handleToggle(true);
-    } else if (!dragMovedRef.current) {
-      handleToggle();
     }
+
+    if (dragMovedRef.current) {
+      setTimeout(() => {
+        dragMovedRef.current = false;
+      }, 50);
+    }
+  };
+
+  const handleClick = () => {
+    if (dragMovedRef.current) {
+      dragMovedRef.current = false;
+      return;
+    }
+    handleToggle();
   };
 
   return (
@@ -274,25 +290,27 @@ export const Module1Explore = ({
         </div>
 
         <section
+          ref={sheetContentRef}
           id="explore-bottom-sheet"
           className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-t-[32px] border-t border-slate-100 bg-white px-5 pt-2.5 pb-6 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] [scrollbar-width:none] [-ms-overflow-style:none] sm:pb-8 [&::-webkit-scrollbar]:hidden"
         >
           <button
             type="button"
+            id="explore-bottom-sheet-handle"
             aria-expanded={isExpanded}
             aria-controls="explore-bottom-sheet"
             aria-label={
               isExpanded
-                ? "Tutup detail rencana perjalanan"
-                : "Buka detail rencana perjalanan"
+                ? "Tutup rencana perjalanan"
+                : "Buka rencana perjalanan"
             }
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
-            onClick={() => handleToggle()}
-            className="group mx-auto -mt-1 mb-2.5 flex h-7 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing focus:outline-none"
+            onClick={handleClick}
+            className="group mx-auto -mt-1 mb-2.5 flex h-7 w-full cursor-grab touch-none items-center justify-center rounded-full active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
           >
-            <span className="h-1.5 w-12 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-400" />
+            <span className="h-1.5 w-12 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-400 group-active:bg-slate-500" />
           </button>
 
           {route ? (

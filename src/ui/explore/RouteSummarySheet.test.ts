@@ -100,7 +100,9 @@ describe("RouteSummarySheet", () => {
     expect(html).toContain("Koridor 1");
     expect(html).toContain("Langsung");
     expect(html).toContain("route-card-heading");
-    expect(html).toContain("Langkah Perjalanan");
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain("grid-rows-[0fr]");
+    expect(html).not.toContain("Tutup detail");
     expect(html).not.toContain("Data terbatas");
     // Should NOT contain academic reason walls of text
     expect(html).not.toContain("Kenapa rute ini dipilih?");
@@ -131,8 +133,12 @@ describe("RouteSummarySheet", () => {
     );
 
     expect(html).toContain("route-steps-content");
+    expect(html).toContain('aria-hidden="false"');
+    expect(html).toContain("grid-rows-[1fr]");
+    expect(html).toContain("Langkah Perjalanan");
     expect(html).toContain("Naik rute 1");
     expect(html).toContain("Turun di Halte Tujuan");
+    expect(html).not.toContain("Tutup detail");
   });
 
   it("renders map notice when map fails", () => {

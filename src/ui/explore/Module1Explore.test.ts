@@ -146,8 +146,31 @@ describe("Module1Explore markup and layout contract", () => {
     expect(html).toContain("Koridor 1");
     expect(html).toContain("Langsung");
     expect(html).toContain("route-card-heading");
-    expect(html).toContain("Langkah Perjalanan");
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain("grid-rows-[0fr]");
+    expect(html).not.toContain("Tutup detail");
     expect(html).not.toContain("TUJUAN POPULER");
     expect(html).not.toContain("chip-monas");
+  });
+
+  it("renders step-by-step instructions in bottom sheet when stepsOpen is true", () => {
+    const route = createDirectRouteSuccess();
+    const html = renderToStaticMarkup(
+      createElement(Module1Explore, {
+        activeContext: "origin",
+        onOpenSearch: () => undefined,
+        onSelectDestination: () => undefined,
+        route,
+        departAt: DEPART_AT,
+        stepsOpen: true,
+      }),
+    );
+
+    expect(html).toContain("Langkah Perjalanan");
+    expect(html).toContain("route-steps-content");
+    expect(html).toContain('aria-hidden="false"');
+    expect(html).toContain("grid-rows-[1fr]");
+    expect(html).toContain("explore-bottom-sheet-handle");
+    expect(html).not.toContain("Tutup detail");
   });
 });
