@@ -1,10 +1,8 @@
 import type { GtfsSnapshot } from "~/core/ingestion/gtfsTypes";
 import type { TransferEdge } from "~/core/transfer/transferTypes";
 
-import type {
-  ResolvedRouteEngineConfig,
-  TripRideOption,
-} from "./routeEngineSupport";
+import type { ResolvedRouteEngineConfig } from "./routeEngineSupport";
+import type { TripRideOption } from "./routeEngineRides";
 import type {
   JourneyRoute,
   RouteCandidate,
@@ -33,9 +31,11 @@ export type SearchContext = Readonly<{
   config: ResolvedRouteEngineConfig;
   lineage: RouteLineage;
   requestedSeconds: number;
+  nowMs: () => number;
   activeServiceIdsByDate: ReadonlyMap<string, ReadonlySet<string>>;
-  targetStopIds: ReadonlySet<string>;
   transferEdgesByFromStop: ReadonlyMap<string, readonly TransferEdge[]>;
+  routeTransferDistanceToDestination: ReadonlyMap<string, number>;
+  destinationAccessStopIds: ReadonlySet<string>;
 }>;
 
 export type JourneyCandidateFactory = (

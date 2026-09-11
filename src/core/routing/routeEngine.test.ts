@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { parseGtfsTime } from "~/core/ingestion/gtfsTime";
 import type { FIXED_SCORING_POLICY } from "~/core/timing/tripTiming";
@@ -77,6 +77,70 @@ describe("selectPrimaryRoute", () => {
       code: "NO_ELIGIBLE_JOURNEY",
     });
     expect(result).not.toHaveProperty("primary");
+  });
+
+  it("fails fast when endpoints belong to disconnected route components", () => {
+    const base = makeSnapshot();
+    const route = base.routes[0];
+    const trip = base.trips[0];
+    const destination = base.stops[1];
+    const destinationTime = base.stopTimes[1];
+    const calendar = base.calendars[0];
+    if (!route || !trip || !destination || !destinationTime || !calendar) {
+      throw new Error("Disconnected fixture requires base records");
+    }
+    const remoteRoute = {
+      ...route,
+      id: "route-remote",
+      shortName: "remote",
+    };
+    const remoteTrip = {
+      ...trip,
+      id: "trip-remote",
+      routeId: remoteRoute.id,
+      serviceId: "service-remote",
+    };
+    const remoteDestination = {
+      ...destination,
+      id: "remote-destination",
+      name: "Remote Destination",
+    };
+    const searchClock = vi.fn(() => {
+      throw new Error("RAPTOR should not run for disconnected endpoints");
+    });
+
+    const result = selectPrimaryRoute({
+      snapshot: {
+        ...base,
+        routes: [...base.routes, remoteRoute],
+        trips: [...base.trips, remoteTrip],
+        stops: [...base.stops, remoteDestination],
+        stopTimes: [
+          ...base.stopTimes,
+          {
+            ...destinationTime,
+            tripId: remoteTrip.id,
+            stopId: remoteDestination.id,
+          },
+        ],
+        calendars: [
+          ...base.calendars,
+          { ...calendar, serviceId: remoteTrip.serviceId },
+        ],
+      },
+      planning: {
+        ...makePlanningInput("2026-09-11", "08:00"),
+        destinationId: remoteDestination.id,
+      },
+      transferEdges: [],
+      searchClock,
+    });
+
+    expect(result).toMatchObject({
+      state: "no-route",
+      code: "NO_ELIGIBLE_JOURNEY",
+    });
+    expect(searchClock).not.toHaveBeenCalled();
   });
 
   it("selects an after-midnight trip from its originating service date", () => {

@@ -1,7 +1,6 @@
 import { getActiveServiceIds } from "~/core/ingestion/gtfsCalendar";
 import type {
   GtfsFrequency,
-  GtfsRoute,
   GtfsSnapshot,
   GtfsStopTime,
   GtfsTrip,
@@ -10,6 +9,8 @@ import type { TransferEdge } from "~/core/transfer/transferTypes";
 
 import {
   DEFAULT_CANDIDATE_CONFIGURATION_HASH,
+  DEFAULT_MAX_LABEL_EXPANSIONS,
+  DEFAULT_MAX_SEARCH_DURATION_MS,
   DEFAULT_MAX_SEARCH_STATES,
   DEFAULT_MAX_TRANSFERS,
   DEFAULT_ROUTE_RULES_VERSION,
@@ -20,12 +21,13 @@ import {
   type RouteSelectionErrorCode,
   type RouteSelectionFailure,
 } from "./routingTypes";
-import { findNextTripRide, type ScheduledTripRide } from "./routeSchedule";
 
 export type ResolvedRouteEngineConfig = Readonly<{
   supportedRouteTypes: readonly number[];
   maxTransfers: number;
   maxSearchStates: number;
+  maxLabelExpansions: number;
+  maxSearchDurationMs: number;
   routeRulesVersion: string;
   candidateConfigurationHash: string;
   freshness: NonNullable<RouteEngineConfig["freshness"]>;
@@ -36,30 +38,6 @@ export type RouteConfigValidation =
   | Readonly<{ state: "valid"; config: ResolvedRouteEngineConfig }>
   | Readonly<{ state: "invalid"; failure: RouteSelectionFailure }>;
 
-export type TripRideOption = Readonly<{
-  trip: GtfsTrip;
-  route: GtfsRoute;
-  serviceDate: string;
-  fromStopIndex: number;
-  toStopIndex: number;
-  fromStopTime: GtfsStopTime;
-  toStopTime: GtfsStopTime;
-  stopTimes: readonly GtfsStopTime[];
-  scheduled: ScheduledTripRide;
-}>;
-
-export type TripRideSearchOptions = Readonly<{
-  index: RouteEngineIndex;
-  stopId: string;
-  targetStopIds: ReadonlySet<string>;
-  supportedRouteTypes: readonly number[];
-  requestedDate: string;
-  requestedTime: string;
-  readyAtSeconds: number;
-  requiredRouteId?: string;
-  activeServiceIdsByDate: ReadonlyMap<string, ReadonlySet<string>>;
-}>;
-
 export function normalizeRouteEngineConfig(
   input: RouteEngineConfig | undefined,
 ): RouteConfigValidation {
@@ -68,6 +46,10 @@ export function normalizeRouteEngineConfig(
     : [...DEFAULT_SUPPORTED_ROUTE_TYPES];
   const maxTransfers = input?.maxTransfers ?? DEFAULT_MAX_TRANSFERS;
   const maxSearchStates = input?.maxSearchStates ?? DEFAULT_MAX_SEARCH_STATES;
+  const maxLabelExpansions =
+    input?.maxLabelExpansions ?? DEFAULT_MAX_LABEL_EXPANSIONS;
+  const maxSearchDurationMs =
+    input?.maxSearchDurationMs ?? DEFAULT_MAX_SEARCH_DURATION_MS;
   const routeRulesVersion =
     input?.routeRulesVersion?.trim() ?? DEFAULT_ROUTE_RULES_VERSION;
   const candidateConfigurationHash =
@@ -85,6 +67,12 @@ export function normalizeRouteEngineConfig(
     !Number.isInteger(maxSearchStates) ||
     maxSearchStates < 1 ||
     maxSearchStates > 100_000 ||
+    !Number.isInteger(maxLabelExpansions) ||
+    maxLabelExpansions < 1 ||
+    maxLabelExpansions > 200_000 ||
+    !Number.isInteger(maxSearchDurationMs) ||
+    maxSearchDurationMs < 1 ||
+    maxSearchDurationMs > 60_000 ||
     !routeRulesVersion ||
     !candidateConfigurationHash
   ) {
@@ -104,6 +92,8 @@ export function normalizeRouteEngineConfig(
       supportedRouteTypes,
       maxTransfers,
       maxSearchStates,
+      maxLabelExpansions,
+      maxSearchDurationMs,
       routeRulesVersion,
       candidateConfigurationHash,
       freshness: input?.freshness ?? "unknown",
@@ -139,17 +129,27 @@ export function createRouteEngineIndex(
 
   const tripsById = createUniqueMap(snapshot.trips, (trip) => trip.id);
   const tripsByStopId = new Map<string, GtfsTrip[]>();
+  const routeIdsByStopId = new Map<string, Set<string>>();
   for (const [tripId, stopTimes] of stopTimesByTrip.entries()) {
     const trip = tripsById.get(tripId);
     if (!trip) continue;
     for (const stopTime of stopTimes) {
       const list = tripsByStopId.get(stopTime.stopId) ?? [];
-      list.push(trip);
+      if (!list.some((entry) => entry.id === trip.id)) {
+        list.push(trip);
+      }
       tripsByStopId.set(stopTime.stopId, list);
+      const routeIds = routeIdsByStopId.get(stopTime.stopId) ?? new Set();
+      routeIds.add(trip.routeId);
+      routeIdsByStopId.set(stopTime.stopId, routeIds);
     }
   }
   for (const trips of tripsByStopId.values()) {
     trips.sort(compareTrips);
+  }
+  const orderedRouteIdsByStopId = new Map<string, readonly string[]>();
+  for (const [stopId, routeIds] of routeIdsByStopId.entries()) {
+    orderedRouteIdsByStopId.set(stopId, [...routeIds].sort(compareOrdinal));
   }
 
   return {
@@ -160,7 +160,61 @@ export function createRouteEngineIndex(
     stopTimesByTrip,
     frequenciesByTrip,
     tripsByStopId,
+    routeIdsByStopId: orderedRouteIdsByStopId,
   };
+}
+
+export function areStopsTransitConnected(
+  index: RouteEngineIndex,
+  transferEdges: readonly TransferEdge[],
+  originStopId: string,
+  destinationStopId: string,
+  config: Pick<ResolvedRouteEngineConfig, "supportedRouteTypes">,
+): boolean {
+  if (originStopId === destinationStopId) return true;
+
+  const graph = new Map<string, Set<string>>();
+  const connect = (left: string, right: string): void => {
+    const leftNeighbors = graph.get(left) ?? new Set<string>();
+    const rightNeighbors = graph.get(right) ?? new Set<string>();
+    leftNeighbors.add(right);
+    rightNeighbors.add(left);
+    graph.set(left, leftNeighbors);
+    graph.set(right, rightNeighbors);
+  };
+  const stopNode = (stopId: string): string => `stop:${stopId}`;
+  const routeNode = (routeId: string): string => `route:${routeId}`;
+
+  for (const [stopId, routeIds] of index.routeIdsByStopId.entries()) {
+    for (const routeId of routeIds) {
+      const route = index.routesById.get(routeId);
+      if (!route || !config.supportedRouteTypes.includes(route.routeType)) {
+        continue;
+      }
+      connect(stopNode(stopId), routeNode(routeId));
+    }
+  }
+  for (const edge of transferEdges) {
+    if (edge.eligibleForRouting && edge.connectionState === "routable") {
+      connect(stopNode(edge.from.stopId), stopNode(edge.to.stopId));
+    }
+  }
+
+  const originNode = stopNode(originStopId);
+  const destinationNode = stopNode(destinationStopId);
+  const pending = [originNode];
+  const visited = new Set([originNode]);
+  while (pending.length > 0) {
+    const current = pending.shift();
+    if (!current) continue;
+    if (current === destinationNode) return true;
+    for (const neighbor of graph.get(current) ?? []) {
+      if (visited.has(neighbor)) continue;
+      visited.add(neighbor);
+      pending.push(neighbor);
+    }
+  }
+  return false;
 }
 
 export function createRouteLineage(
@@ -197,65 +251,6 @@ export function getActiveServicesByDate(
   );
 }
 
-export function findTripRideOptions(
-  options: TripRideSearchOptions,
-): readonly TripRideOption[] {
-  const results: TripRideOption[] = [];
-  const tripEntries = options.index.tripsByStopId.get(options.stopId) ?? [];
-
-  for (const trip of tripEntries) {
-    const route = options.index.routesById.get(trip.routeId);
-    const stopTimes = options.index.stopTimesByTrip.get(trip.id);
-    if (!route || !stopTimes || stopTimes.length < 2) {
-      continue;
-    }
-    if (!options.supportedRouteTypes.includes(route.routeType)) {
-      continue;
-    }
-    if (
-      options.requiredRouteId !== undefined &&
-      route.id !== options.requiredRouteId
-    ) {
-      continue;
-    }
-
-    const boardingIndexes = stopTimes
-      .map((stopTime, index) =>
-        stopTime.stopId === options.stopId ? index : undefined,
-      )
-      .filter(isNumber);
-    for (const fromStopIndex of boardingIndexes) {
-      const fromStopTime = stopTimes[fromStopIndex];
-      if (!fromStopTime) {
-        continue;
-      }
-
-      const downstream = stopTimes
-        .slice(fromStopIndex + 1)
-        .map((stopTime, offset) => ({
-          stopTime,
-          index: fromStopIndex + offset + 1,
-        }))
-        .filter(({ stopTime }) => options.targetStopIds.has(stopTime.stopId));
-      for (const destination of downstream) {
-        const rides = findRidesForServiceDates({
-          trip,
-          stopTimes,
-          fromStopTime,
-          toStopTime: destination.stopTime,
-          fromStopIndex,
-          toStopIndex: destination.index,
-          frequencies: options.index.frequenciesByTrip.get(trip.id) ?? [],
-          options,
-        });
-        results.push(...rides);
-      }
-    }
-  }
-
-  return results.sort(compareTripRideOptions);
-}
-
 export function isRoutableTransferEdge(
   edge: TransferEdge,
   index: RouteEngineIndex,
@@ -287,59 +282,6 @@ export function createFailure(
   state: RouteSelectionFailure["state"] = "invalid-input",
 ): RouteSelectionFailure {
   return { state, code, message, recoveryAction };
-}
-
-function findRidesForServiceDates(input: {
-  trip: GtfsTrip;
-  stopTimes: readonly GtfsStopTime[];
-  fromStopTime: GtfsStopTime;
-  toStopTime: GtfsStopTime;
-  fromStopIndex: number;
-  toStopIndex: number;
-  frequencies: readonly GtfsFrequency[];
-  options: TripRideSearchOptions;
-}): readonly TripRideOption[] {
-  const serviceDates = [...input.options.activeServiceIdsByDate.entries()]
-    .filter(([, activeServiceIds]) =>
-      activeServiceIds.has(input.trip.serviceId),
-    )
-    .map(([serviceDate]) => serviceDate);
-  const firstStopDeparture = input.stopTimes[0]?.departureTime;
-  if (!firstStopDeparture) {
-    return [];
-  }
-
-  const frequencies: readonly (GtfsFrequency | undefined)[] =
-    input.frequencies.length > 0 ? input.frequencies : [undefined];
-  const rides: TripRideOption[] = [];
-  for (const serviceDate of serviceDates) {
-    for (const frequency of frequencies) {
-      const scheduled = findNextTripRide({
-        requestedDate: input.options.requestedDate,
-        requestedTime: input.options.requestedTime,
-        requestedSeconds: input.options.readyAtSeconds,
-        serviceDate,
-        boardingDeparture: input.fromStopTime.departureTime,
-        alightingArrival: input.toStopTime.arrivalTime,
-        firstStopDeparture,
-        ...(frequency ? { frequency } : {}),
-      });
-      if (scheduled) {
-        rides.push({
-          trip: input.trip,
-          route: input.options.index.routesById.get(input.trip.routeId)!,
-          serviceDate,
-          fromStopIndex: input.fromStopIndex,
-          toStopIndex: input.toStopIndex,
-          fromStopTime: input.fromStopTime,
-          toStopTime: input.toStopTime,
-          stopTimes: input.stopTimes,
-          scheduled,
-        });
-      }
-    }
-  }
-  return rides;
 }
 
 function createUniqueMap<T>(
@@ -379,22 +321,6 @@ function compareTrips(left: GtfsTrip, right: GtfsTrip): number {
   return compareOrdinal(left.id, right.id);
 }
 
-function compareTripRideOptions(
-  left: TripRideOption,
-  right: TripRideOption,
-): number {
-  return (
-    left.scheduled.actualDepartureSeconds -
-      right.scheduled.actualDepartureSeconds ||
-    left.scheduled.actualArrivalSeconds -
-      right.scheduled.actualArrivalSeconds ||
-    compareOrdinal(left.route.id, right.route.id) ||
-    compareOrdinal(left.trip.id, right.trip.id) ||
-    left.toStopTime.stopSequence - right.toStopTime.stopSequence ||
-    compareOrdinal(left.serviceDate, right.serviceDate)
-  );
-}
-
 function compareOrdinal(left: string, right: string): number {
   const limit = Math.min(left.length, right.length);
   for (let index = 0; index < limit; index += 1) {
@@ -405,8 +331,4 @@ function compareOrdinal(left: string, right: string): number {
     }
   }
   return left.length - right.length;
-}
-
-function isNumber(value: number | undefined): value is number {
-  return value !== undefined;
 }

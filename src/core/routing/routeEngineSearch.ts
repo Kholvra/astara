@@ -1,72 +1,140 @@
-import type { TransferEdge } from "~/core/transfer/transferTypes";
-
-import { compareRouteCandidates } from "./routeScoring";
-import { createTransitLeg, createWalkingLeg } from "./routeLegs";
+import { createFailure } from "./routeEngineSupport";
+import { findTripRideOptions, type TripRideOption } from "./routeEngineRides";
 import {
-  createFailure,
-  findTripRideOptions,
-  getTransferDurationSeconds,
-  type TripRideOption,
-} from "./routeEngineSupport";
-import { createJourneyCandidate } from "./routeJourney";
-import type { SearchContext, SearchState } from "./routeEngineInternalTypes";
+  addDestinationLabel,
+  addRaptorLabel,
+  compareRaptorLabels,
+  createInitialLabels,
+  createRideLabel,
+  createTransferLabel,
+  groupLabels,
+  type RaptorLabel,
+} from "./routeEngineRaptorLabels";
+import type { SearchContext } from "./routeEngineInternalTypes";
+import { materializeCandidates } from "./routeEngineCandidates";
+import {
+  collectMarkedRouteIds,
+  consumeLabelExpansion,
+  hasDestinationAtOrBelowRound,
+  hasZeroTransferDestination,
+  isRouteServingStop,
+  isWithinSearchBudget,
+  isWithinSearchDeadline,
+  searchExhaustedFailure,
+  type SearchBudget,
+} from "./routeEngineSearchSupport";
+import {
+  createRideTargetStopIds,
+  isUsefulTransferEdge,
+} from "./routeEngineTargetSupport";
 import type {
   RouteCandidate,
-  RouteLeg,
-  RouteSelectionFailure,
   RouteLineage,
+  RouteSelectionFailure,
 } from "./routingTypes";
 
-export function runBoundedSearch(context: SearchContext):
+type RaptorSearchResult =
   | Readonly<{
       state: "ready";
       candidates: readonly RouteCandidate[];
       lineage: RouteLineage;
     }>
-  | Readonly<{ state: "failed"; failure: RouteSelectionFailure }> {
-  const queue: SearchState[] = createInitialStates(context);
-  const seenStates = new Set<string>();
-  const candidates: RouteCandidate[] = [];
-  let processedStates = 0;
+  | Readonly<{ state: "failed"; failure: RouteSelectionFailure }>;
 
-  while (queue.length > 0) {
-    if (processedStates >= context.config.maxSearchStates) {
+type ScanResult = "completed" | "exhausted";
+type RideExtension = Readonly<{
+  label: RaptorLabel;
+  ride: TripRideOption;
+  rideLabel: RaptorLabel;
+}>;
+
+export function runRaptorSearch(context: SearchContext): RaptorSearchResult {
+  const rideTargetStopIdsByRouteRound = new Map<string, ReadonlySet<string>>();
+  let budget: SearchBudget = {
+    startedAtMs: context.nowMs(),
+    labelExpansions: 0,
+  };
+  let markedLabels = groupLabels(createInitialLabels(context));
+  const destinationLabels: RaptorLabel[] = [];
+  let routeScanCount = 0;
+  let round = 0;
+
+  while (markedLabels.size > 0) {
+    if (!isWithinSearchBudget(context, budget)) {
       return searchExhaustedFailure();
     }
-    const state = queue.shift();
-    if (!state) {
-      continue;
+    const routeIds = collectMarkedRouteIds(
+      context,
+      markedLabels,
+      round,
+      budget,
+    );
+    if (routeIds.state === "exhausted") {
+      return searchExhaustedFailure();
     }
-    const stateKey = serializeState(state);
-    if (seenStates.has(stateKey)) {
-      continue;
-    }
-    seenStates.add(stateKey);
-    processedStates += 1;
+    const nextMarkedLabels = new Map<string, RaptorLabel[]>();
 
-    const rides = findTripRideOptions({
-      index: context.index,
-      stopId: state.stopId,
-      targetStopIds: context.targetStopIds,
-      supportedRouteTypes: context.config.supportedRouteTypes,
-      requestedDate: context.request.planning.departAt.localDate,
-      requestedTime: context.request.planning.departAt.localTime,
-      readyAtSeconds: state.readyAtSeconds,
-      ...(state.requiredRouteId
-        ? { requiredRouteId: state.requiredRouteId }
-        : {}),
-      activeServiceIdsByDate: context.activeServiceIdsByDate,
-    });
-    for (const ride of rides) {
-      if (state.usedTripIds.has(ride.trip.id)) {
+    for (const routeId of routeIds.routeIds) {
+      const directDestinationFound =
+        hasZeroTransferDestination(destinationLabels);
+      if (
+        directDestinationFound &&
+        !isRouteServingStop(
+          context,
+          routeId,
+          context.request.planning.destinationId,
+        )
+      ) {
         continue;
       }
-      expandRide(context, state, ride, queue, candidates);
+      if (routeScanCount >= context.config.maxSearchStates) {
+        return searchExhaustedFailure();
+      }
+      routeScanCount += 1;
+      const targetCacheKey = `${round}\u0000${routeId}`;
+      const cachedTargets = rideTargetStopIdsByRouteRound.get(targetCacheKey);
+      const rideTargetStopIds =
+        cachedTargets ?? createRideTargetStopIds(context, routeId, round);
+      if (!cachedTargets) {
+        rideTargetStopIdsByRouteRound.set(targetCacheKey, rideTargetStopIds);
+      }
+      const scanResult = scanRoute(
+        context,
+        routeId,
+        markedLabels,
+        directDestinationFound
+          ? new Set([context.request.planning.destinationId])
+          : rideTargetStopIds,
+        round,
+        nextMarkedLabels,
+        destinationLabels,
+        budget,
+      );
+      budget = scanResult.budget;
+      if (scanResult.state === "exhausted") {
+        return searchExhaustedFailure();
+      }
     }
+
+    if (hasDestinationAtOrBelowRound(destinationLabels, round)) {
+      break;
+    }
+    if (round >= context.config.maxTransfers) {
+      break;
+    }
+    markedLabels = nextMarkedLabels;
+    round += 1;
   }
 
-  const uniqueCandidates = uniqueRouteCandidates(candidates);
-  if (uniqueCandidates.length === 0) {
+  const materialized = materializeCandidates(
+    context,
+    destinationLabels,
+    budget,
+  );
+  if (materialized.state === "exhausted") {
+    return searchExhaustedFailure();
+  }
+  if (materialized.candidates.length === 0) {
     return {
       state: "failed",
       failure: createFailure(
@@ -77,218 +145,183 @@ export function runBoundedSearch(context: SearchContext):
       ),
     };
   }
+
   return {
     state: "ready",
-    candidates: uniqueCandidates,
+    candidates: materialized.candidates,
     lineage: context.lineage,
   };
 }
 
-function expandRide(
+function scanRoute(
   context: SearchContext,
-  state: SearchState,
-  ride: TripRideOption,
-  queue: SearchState[],
-  candidates: RouteCandidate[],
-): void {
-  const transitLeg = createTransitLeg(
-    ride,
-    state.legs.length,
-    context.snapshot,
-  );
-  const nextLegs = [...state.legs, transitLeg];
-  const nextRides = [...state.rides, ride];
-  const nextUsedTrips = new Set(state.usedTripIds).add(ride.trip.id);
-  const nextDecisionPointCount = state.decisionPointCount + 1;
-  if (ride.toStopTime.stopId === context.request.planning.destinationId) {
-    candidates.push(
-      createJourneyCandidate(context, {
-        ...state,
-        legs: nextLegs,
-        rides: nextRides,
-        usedTripIds: nextUsedTrips,
-        decisionPointCount: nextDecisionPointCount,
-        readyAtSeconds: ride.scheduled.actualArrivalSeconds,
-      }),
-    );
-    return;
+  routeId: string,
+  markedLabels: ReadonlyMap<string, readonly RaptorLabel[]>,
+  rideTargetStopIds: ReadonlySet<string>,
+  round: number,
+  nextMarkedLabels: Map<string, RaptorLabel[]>,
+  destinationLabels: RaptorLabel[],
+  budget: SearchBudget,
+): Readonly<{ state: ScanResult; budget: SearchBudget }> {
+  let currentBudget = budget;
+  // Keep one best ride per downstream stop; later rides on the same route and
+  // round cannot improve a compatible label with worse arrival or walking
+  // facts. Incompatible trip/edge histories remain separate.
+  const bestByDestinationStop = new Map<string, RideExtension[]>();
+  for (const [stopId, labels] of markedLabels.entries()) {
+    for (const label of labels) {
+      if (
+        label.requiredRouteId !== undefined &&
+        label.requiredRouteId !== routeId
+      ) {
+        continue;
+      }
+      if (
+        label.requiredRouteId === undefined &&
+        !(context.index.routeIdsByStopId.get(stopId) ?? []).includes(routeId)
+      ) {
+        continue;
+      }
+      if (!isWithinSearchBudget(context, currentBudget)) {
+        return { state: "exhausted", budget: currentBudget };
+      }
+      const rides = findTripRideOptions({
+        index: context.index,
+        stopId,
+        targetStopIds: rideTargetStopIds,
+        supportedRouteTypes: context.config.supportedRouteTypes,
+        requestedDate: context.request.planning.departAt.localDate,
+        requestedTime: context.request.planning.departAt.localTime,
+        readyAtSeconds: label.readyAtSeconds,
+        requiredRouteId: routeId,
+        activeServiceIdsByDate: context.activeServiceIdsByDate,
+        excludedTripIds: label.usedTripIds,
+        shouldContinue: () => isWithinSearchDeadline(context, currentBudget),
+      });
+      if (!isWithinSearchBudget(context, currentBudget)) {
+        return { state: "exhausted", budget: currentBudget };
+      }
+      for (const ride of rides) {
+        if (label.usedTripIds.has(ride.trip.id)) {
+          continue;
+        }
+        const rideLabel = createRideLabel(label, ride);
+        retainRideExtension(bestByDestinationStop, {
+          label,
+          ride,
+          rideLabel,
+        });
+      }
+    }
   }
 
-  if (state.transferCount >= context.config.maxTransfers) {
-    return;
+  const extensions = [...bestByDestinationStop.values()]
+    .flat()
+    .sort((left, right) =>
+      compareRaptorLabels(left.rideLabel, right.rideLabel),
+    );
+  for (const extension of extensions) {
+    if (
+      hasZeroTransferDestination(destinationLabels) &&
+      extension.rideLabel.stopId !== context.request.planning.destinationId
+    ) {
+      continue;
+    }
+    const expanded = consumeLabelExpansion(context, currentBudget);
+    currentBudget = expanded.budget;
+    if (!expanded.allowed) {
+      return { state: "exhausted", budget: currentBudget };
+    }
+    const processed = processRide(
+      context,
+      extension.label,
+      extension.ride,
+      round,
+      nextMarkedLabels,
+      destinationLabels,
+      currentBudget,
+    );
+    if (!processed) {
+      return { state: "exhausted", budget: currentBudget };
+    }
   }
-  enqueueTransfers(
-    context,
-    state,
-    ride,
-    nextLegs,
-    nextRides,
-    nextUsedTrips,
-    nextDecisionPointCount,
-    queue,
-    candidates,
-  );
+
+  return { state: "completed", budget: currentBudget };
 }
 
-function enqueueTransfers(
-  context: SearchContext,
-  state: SearchState,
-  ride: TripRideOption,
-  nextLegs: readonly RouteLeg[],
-  nextRides: readonly TripRideOption[],
-  nextUsedTrips: ReadonlySet<string>,
-  nextDecisionPointCount: number,
-  queue: SearchState[],
-  candidates: RouteCandidate[],
+function retainRideExtension(
+  extensionsByStop: Map<string, RideExtension[]>,
+  extension: RideExtension,
 ): void {
-  const edges =
-    context.transferEdgesByFromStop.get(ride.toStopTime.stopId) ?? [];
+  const current = extensionsByStop.get(extension.rideLabel.stopId) ?? [];
+  const grouped = groupLabels([
+    ...current.map((candidate) => candidate.rideLabel),
+    extension.rideLabel,
+  ]);
+  const extensionsByKey = new Map<string, RideExtension>(
+    [...current, extension].map((candidate) => [
+      candidate.rideLabel.key,
+      candidate,
+    ]),
+  );
+  const retained = (grouped.get(extension.rideLabel.stopId) ?? []).flatMap(
+    (label) => {
+      const candidate = extensionsByKey.get(label.key);
+      return candidate ? [candidate] : [];
+    },
+  );
+  extensionsByStop.set(extension.rideLabel.stopId, retained);
+}
+
+function processRide(
+  context: SearchContext,
+  label: RaptorLabel,
+  ride: TripRideOption,
+  round: number,
+  nextMarkedLabels: Map<string, RaptorLabel[]>,
+  destinationLabels: RaptorLabel[],
+  budget: SearchBudget,
+): boolean {
+  if (label.usedTripIds.has(ride.trip.id)) {
+    return true;
+  }
+
+  const rideLabel = createRideLabel(label, ride);
+  if (rideLabel.stopId === context.request.planning.destinationId) {
+    addDestinationLabel(destinationLabels, rideLabel);
+  }
+  // A direct ride is the lowest possible transfer count, so transfer branches cannot outrank it.
+  if (hasZeroTransferDestination(destinationLabels)) {
+    return true;
+  }
+  if (
+    round >= context.config.maxTransfers ||
+    label.transferCount >= context.config.maxTransfers
+  ) {
+    return true;
+  }
+
+  const edges = context.transferEdgesByFromStop.get(rideLabel.stopId) ?? [];
   for (const edge of edges) {
+    if (!isWithinSearchDeadline(context, budget)) {
+      return false;
+    }
+    if (!isUsefulTransferEdge(context, edge, ride.route.id, round)) {
+      continue;
+    }
     if (
-      state.usedEdgeIds.has(edge.edgeId) ||
+      rideLabel.usedEdgeIds.has(edge.edgeId) ||
       (edge.from.transitServiceId !== undefined &&
         edge.from.transitServiceId !== ride.route.id)
     ) {
       continue;
     }
-    const walkingLeg = createWalkingLeg(edge, nextLegs.length);
-    const legs = [...nextLegs, walkingLeg];
-    const transferCount = state.transferCount + 1;
-    const readyAtSeconds =
-      ride.scheduled.actualArrivalSeconds + getTransferDurationSeconds(edge);
-    const usedEdgeIds = new Set(state.usedEdgeIds).add(edge.edgeId);
-    if (edge.to.stopId === context.request.planning.destinationId) {
-      candidates.push(
-        createJourneyCandidate(context, {
-          ...state,
-          legs,
-          rides: nextRides,
-          usedTripIds: nextUsedTrips,
-          usedEdgeIds,
-          transferCount,
-          decisionPointCount: nextDecisionPointCount + 1,
-          readyAtSeconds,
-        }),
-      );
+    const transferLabel = createTransferLabel(rideLabel, edge);
+    if (transferLabel.stopId === context.request.planning.destinationId) {
+      addDestinationLabel(destinationLabels, transferLabel);
       continue;
     }
-    queue.push({
-      stopId: edge.to.stopId,
-      readyAtSeconds,
-      ...(edge.to.transitServiceId
-        ? { requiredRouteId: edge.to.transitServiceId }
-        : {}),
-      legs,
-      rides: nextRides,
-      usedTripIds: nextUsedTrips,
-      usedEdgeIds,
-      transferCount,
-      decisionPointCount: nextDecisionPointCount + 1,
-    });
+    addRaptorLabel(nextMarkedLabels, transferLabel);
   }
-}
-
-function groupTransferEdges(
-  edges: readonly TransferEdge[],
-): ReadonlyMap<string, readonly TransferEdge[]> {
-  const grouped = new Map<string, TransferEdge[]>();
-  for (const edge of edges) {
-    const current = grouped.get(edge.from.stopId) ?? [];
-    current.push(edge);
-    grouped.set(edge.from.stopId, current);
-  }
-  for (const current of grouped.values()) {
-    current.sort((left, right) => compareOrdinal(left.edgeId, right.edgeId));
-  }
-  return grouped;
-}
-
-export function createTransferEdgeIndex(
-  edges: readonly TransferEdge[],
-): ReadonlyMap<string, readonly TransferEdge[]> {
-  return groupTransferEdges(edges);
-}
-
-function uniqueRouteCandidates(
-  candidates: readonly RouteCandidate[],
-): readonly RouteCandidate[] {
-  const unique = new Map<string, RouteCandidate>();
-  for (const candidate of [...candidates].sort(compareRouteCandidates)) {
-    if (!unique.has(candidate.journey.routeId)) {
-      unique.set(candidate.journey.routeId, candidate);
-    }
-  }
-  return [...unique.values()];
-}
-
-function createInitialStates(context: SearchContext): SearchState[] {
-  const base = createInitialState(context);
-  const states: SearchState[] = [base];
-  const edges =
-    context.transferEdgesByFromStop.get(context.request.planning.originId) ?? [];
-  for (const edge of edges) {
-    const walkingLeg = createWalkingLeg(edge, 0);
-    states.push({
-      stopId: edge.to.stopId,
-      readyAtSeconds:
-        context.requestedSeconds + getTransferDurationSeconds(edge),
-      legs: [walkingLeg],
-      rides: [],
-      usedTripIds: new Set(),
-      usedEdgeIds: new Set([edge.edgeId]),
-      transferCount: 0,
-      decisionPointCount: 1,
-    });
-  }
-  return states;
-}
-
-function createInitialState(context: SearchContext): SearchState {
-  return {
-    stopId: context.request.planning.originId,
-    readyAtSeconds: context.requestedSeconds,
-    legs: [],
-    rides: [],
-    usedTripIds: new Set(),
-    usedEdgeIds: new Set(),
-    transferCount: 0,
-    decisionPointCount: 0,
-  };
-}
-
-function serializeState(state: SearchState): string {
-  return [
-    state.stopId,
-    String(state.readyAtSeconds),
-    state.requiredRouteId ?? "",
-    [...state.usedTripIds].sort(compareOrdinal).join(","),
-    [...state.usedEdgeIds].sort(compareOrdinal).join(","),
-  ].join("|");
-}
-
-function searchExhaustedFailure(): Readonly<{
-  state: "failed";
-  failure: RouteSelectionFailure;
-}> {
-  return {
-    state: "failed",
-    failure: createFailure(
-      "SEARCH_EXHAUSTED",
-      "The supported route search reached its safety limit before it could evaluate every candidate.",
-      "Try again with a narrower supported journey or a refreshed route configuration.",
-      "limited-data",
-    ),
-  };
-}
-
-function compareOrdinal(left: string, right: string): number {
-  const limit = Math.min(left.length, right.length);
-  for (let index = 0; index < limit; index += 1) {
-    const leftCode = left.charCodeAt(index);
-    const rightCode = right.charCodeAt(index);
-    if (leftCode !== rightCode) {
-      return leftCode - rightCode;
-    }
-  }
-  return left.length - right.length;
+  return true;
 }
