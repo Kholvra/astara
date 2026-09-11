@@ -151,7 +151,7 @@ export function createDurationLabel(timing: JourneyTiming): string {
 export function createServiceDirections(
   journey: JourneyRoute,
 ): readonly string[] {
-  const values = journey.serviceDirections.map((direction) => {
+  const values = (journey.serviceDirections ?? []).map((direction) => {
     const route = `Rute ${normalizeText(direction.routeShortName) ?? "belum tersedia"}`;
     const headsign = normalizeText(direction.headsign);
     return `${route} • ${headsign ? `Arah ${headsign}` : "Arah belum tersedia"}`;

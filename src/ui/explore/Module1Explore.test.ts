@@ -2,7 +2,51 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { selectPrimaryRoute } from "~/core/routing/routeEngine";
+import type { RouteSelectionSuccess } from "~/core/routing/routingTypes";
+import {
+  makePlanningInput,
+  makeSnapshot,
+} from "~/core/routing/routeEngineTestFixtures";
+import type { PlannerPlanSuccess } from "~/core/planner/plannerTypes";
 import { Module1Explore } from "./Module1Explore";
+
+const DEPART_AT = makePlanningInput("2026-09-11", "08:00").departAt;
+
+function createDirectRouteSuccess(): PlannerPlanSuccess {
+  const result = selectPrimaryRoute({
+    snapshot: makeSnapshot(),
+    planning: makePlanningInput("2026-09-11", "08:00"),
+    transferEdges: [],
+  }) as RouteSelectionSuccess;
+
+  return {
+    state: "success",
+    snapshotId: "test-snapshot",
+    configurationHash: "test-hash",
+    result,
+    stopLabels: {
+      origin: "Halte Asal",
+      destination: "Halte Tujuan",
+    },
+    mapData: {
+      routeId: "test-route",
+      legs: [],
+      markers: [],
+      attributions: [],
+    },
+    status: {
+      networkAvailability: "available",
+      freshness: "current",
+      coverage: "complete",
+      evidenceState: "limited",
+      connectionState: "routable",
+      timingSemantics: "unavailable",
+      geometryState: "supported",
+      limitations: [],
+    },
+  };
+}
 
 describe("Module1Explore markup and layout contract", () => {
   it("renders the interactive bottom sheet handle with accessible affordance", () => {
@@ -85,5 +129,25 @@ describe("Module1Explore markup and layout contract", () => {
     expect(html).toContain("Reset");
     expect(html).not.toContain("Cari rute");
     expect(html).not.toContain("Tukar arah");
+  });
+
+  it("renders route summary in bottom sheet and hides popular destinations when route is active", () => {
+    const route = createDirectRouteSuccess();
+    const html = renderToStaticMarkup(
+      createElement(Module1Explore, {
+        activeContext: "origin",
+        onOpenSearch: () => undefined,
+        onSelectDestination: () => undefined,
+        route,
+        departAt: DEPART_AT,
+      }),
+    );
+
+    expect(html).toContain("Koridor 1");
+    expect(html).toContain("Langsung");
+    expect(html).toContain("route-card-heading");
+    expect(html).toContain("Langkah Perjalanan");
+    expect(html).not.toContain("TUJUAN POPULER");
+    expect(html).not.toContain("chip-monas");
   });
 });
