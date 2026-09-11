@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Landmark,
   RotateCcw,
+  Search,
   ShoppingBag,
   Trophy,
   X,
@@ -166,39 +167,63 @@ export const Module1Explore = ({
               </button>
             ) : null}
           </div>
-          <div className="relative grid gap-2">
-            <div className="relative">
-              <EndpointField
-                context="origin"
-                location={origin}
-                active={activeContext === "origin"}
-                onClick={() => onOpenSearch("origin")}
-              />
-              {onSwap && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSwap();
-                  }}
-                  disabled={!origin && !destination}
-                  aria-label="Tukar asal dan tujuan"
-                  title="Tukar asal dan tujuan"
-                  className="group absolute left-[28px] top-full z-10 mt-1 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-500 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none after:absolute after:-inset-1.5 after:content-['']"
-                >
-                  <ArrowUpDown className="h-3 w-3 transition-transform duration-300 group-hover:rotate-180" />
-                </button>
-              )}
+          {!origin && !destination ? (
+            <button
+              type="button"
+              onClick={() => onOpenSearch("destination")}
+              className="group flex min-h-[54px] w-full cursor-pointer items-center gap-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-3.5 text-left transition-all hover:border-emerald-300 hover:bg-emerald-50/40 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+              aria-label="Cari tujuan rute"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-2xs transition-transform group-hover:scale-105">
+                <Search className="h-4 w-4 stroke-[2.4]" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-slate-800">
+                  Mau ke mana hari ini?
+                </span>
+                <span className="block text-xs text-slate-400 truncate">
+                  Ketik halte, stasiun, atau destinasi tujuan…
+                </span>
+              </span>
+              <span className="flex h-7 shrink-0 items-center rounded-lg border border-slate-200/80 bg-white px-2.5 text-xs font-semibold text-slate-600 shadow-2xs">
+                Cari
+              </span>
+            </button>
+          ) : (
+            <div className="relative grid gap-2">
+              <div className="relative">
+                <EndpointField
+                  context="origin"
+                  location={origin}
+                  active={activeContext === "origin"}
+                  onClick={() => onOpenSearch("origin")}
+                />
+                {onSwap && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSwap();
+                    }}
+                    disabled={!origin && !destination}
+                    aria-label="Tukar asal dan tujuan"
+                    title="Tukar asal dan tujuan"
+                    className="group absolute left-[28px] top-full z-10 mt-1 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-500 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none after:absolute after:-inset-1.5 after:content-['']"
+                  >
+                    <ArrowUpDown className="h-3 w-3 transition-transform duration-300 group-hover:rotate-180" />
+                  </button>
+                )}
+              </div>
+              <div>
+                <EndpointField
+                  context="destination"
+                  location={destination}
+                  active={activeContext === "destination"}
+                  onClick={() => onOpenSearch("destination")}
+                />
+              </div>
             </div>
-            <div>
-              <EndpointField
-                context="destination"
-                location={destination}
-                active={activeContext === "destination"}
-                onClick={() => onOpenSearch("destination")}
-              />
-            </div>
-          </div>
+          )}
         </div>
       </header>
 

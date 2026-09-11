@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { resolveCurrentLocation } from "~/core/search/currentLocationResolution";
+import type { GeoCoordinate } from "~/core/geojson/geometry";
 import type {
   CurrentLocationReading,
   RoutableLocation,
@@ -40,6 +41,7 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
   const [screen, setScreen] = useState<PlannerScreen>("explore");
   const [activeContext, setActiveContext] = useState<SearchContext>("origin");
   const [initialQuery, setInitialQuery] = useState("");
+  const [userLocation, setUserLocation] = useState<GeoCoordinate | null>(null);
   const currentDepartAtRef = useRef<DepartAtValidation | null>(null);
   const [locationMessage, setLocationMessage] = useState<string>();
   const [mapRetryNonce, setMapRetryNonce] = useState(0);
@@ -149,6 +151,7 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
     context: SearchContext,
     reading: CurrentLocationReading,
   ) => {
+    setUserLocation(reading.coordinates);
     const resolution = resolveCurrentLocation(
       reading,
       snapshot.catalog?.items ?? [],
@@ -276,6 +279,7 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
         mapRetryNonce={mapRetryNonce}
         mapDismissed={mapDismissed}
         snapshot={snapshot}
+        userLocation={userLocation}
         onBack={handleBack}
         onEdit={handleEdit}
         onSwap={handleSwap}
@@ -358,6 +362,7 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
           styleUrl={mapStyleUrl}
           showRecoveryAction={false}
           showLoadingStatus={false}
+          userLocation={userLocation}
         />
       </Module1Explore>
     </main>
