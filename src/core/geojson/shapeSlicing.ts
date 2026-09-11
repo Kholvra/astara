@@ -3,7 +3,7 @@ import { isGeoCoordinate, type GeoCoordinate } from "./geometry";
 const METERS_PER_DEGREE = 111_320;
 const EXACT_VERTEX_DISTANCE_METERS = 1;
 const DEFAULT_MAX_STOP_TO_SHAPE_DISTANCE_METERS = 250;
-const DEFAULT_AMBIGUITY_THRESHOLD_METERS = 20;
+const DEFAULT_AMBIGUITY_THRESHOLD_METERS = 5;
 const POSITION_EPSILON = 1e-7;
 
 export type ShapeSlicePoint = Readonly<{
@@ -49,20 +49,36 @@ export function sliceShapeBetweenStops(
     return unavailable("Transit geometry is unavailable for this leg.");
   }
 
-  const fromProjection = projectStop(
+  const maxDistance =
+    options.maxStopToShapeDistanceMeters ??
+    DEFAULT_MAX_STOP_TO_SHAPE_DISTANCE_METERS;
+  const ambiguityThreshold =
+    options.ambiguityThresholdMeters ?? DEFAULT_AMBIGUITY_THRESHOLD_METERS;
+
+  let fromProjection = projectStop(
     input.fromStop,
     points,
-    options.maxStopToShapeDistanceMeters ??
-      DEFAULT_MAX_STOP_TO_SHAPE_DISTANCE_METERS,
-    options.ambiguityThresholdMeters ?? DEFAULT_AMBIGUITY_THRESHOLD_METERS,
+    maxDistance,
+    ambiguityThreshold,
   );
   const toProjection = projectStop(
     input.toStop,
     points,
-    options.maxStopToShapeDistanceMeters ??
-      DEFAULT_MAX_STOP_TO_SHAPE_DISTANCE_METERS,
-    options.ambiguityThresholdMeters ?? DEFAULT_AMBIGUITY_THRESHOLD_METERS,
+    maxDistance,
+    ambiguityThreshold,
+    fromProjection ? fromProjection.position - POSITION_EPSILON : undefined,
   );
+
+  if (!fromProjection && toProjection) {
+    fromProjection = projectStop(
+      input.fromStop,
+      points,
+      maxDistance,
+      ambiguityThreshold,
+      undefined,
+      toProjection.position + POSITION_EPSILON,
+    );
+  }
   if (!fromProjection || !toProjection) {
     return unavailable("Transit geometry could not be associated with stops.");
   }
@@ -129,8 +145,10 @@ function projectStop(
   points: readonly ShapeSlicePoint[],
   maxDistanceMeters: number,
   ambiguityThresholdMeters: number,
+  minPosition?: number,
+  maxPosition?: number,
 ): ShapeProjection | undefined {
-  const candidates: ShapeProjection[] = [];
+  let candidates: ShapeProjection[] = [];
   for (let index = 0; index < points.length; index += 1) {
     const point = points[index];
     if (!point) {
@@ -167,6 +185,17 @@ function projectStop(
     });
   }
 
+  if (minPosition !== undefined) {
+    candidates = candidates.filter(
+      (candidate) => candidate.position >= minPosition - POSITION_EPSILON,
+    );
+  }
+  if (maxPosition !== undefined) {
+    candidates = candidates.filter(
+      (candidate) => candidate.position <= maxPosition + POSITION_EPSILON,
+    );
+  }
+
   candidates.sort(
     (left, right) =>
       left.distanceMeters - right.distanceMeters ||
@@ -178,15 +207,46 @@ function projectStop(
   }
 
   const competingCandidate = candidates.find(
-    (candidate) =>
-      Math.abs(candidate.position - best.position) > POSITION_EPSILON &&
-      candidate.distanceMeters - best.distanceMeters <=
-        ambiguityThresholdMeters,
+    (candidate) => {
+      const dShape = distanceAlongShape(points, best.position, candidate.position);
+      return (
+        dShape > Math.max(50, ambiguityThresholdMeters * 2) &&
+        candidate.distanceMeters - best.distanceMeters <=
+          ambiguityThresholdMeters
+      );
+    },
   );
   if (competingCandidate) {
     return undefined;
   }
   return best;
+}
+
+function distanceAlongShape(
+  points: readonly ShapeSlicePoint[],
+  fromPos: number,
+  toPos: number,
+): number {
+  const minPos = Math.min(fromPos, toPos);
+  const maxPos = Math.max(fromPos, toPos);
+  if (maxPos - minPos <= POSITION_EPSILON) {
+    return 0;
+  }
+  let totalDistance = 0;
+  const startIdx = Math.floor(minPos);
+  const endIdx = Math.min(points.length - 1, Math.ceil(maxPos));
+  for (let i = startIdx; i < endIdx; i += 1) {
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    if (!p1 || !p2) continue;
+    const segDist = distanceMeters(p1.coordinate, p2.coordinate);
+    const segStart = Math.max(0, minPos - i);
+    const segEnd = Math.min(1, maxPos - i);
+    if (segEnd > segStart) {
+      totalDistance += segDist * (segEnd - segStart);
+    }
+  }
+  return totalDistance;
 }
 
 function projectOntoSegment(

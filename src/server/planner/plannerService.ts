@@ -143,7 +143,10 @@ async function planRoute(
     configurationHash: context.configurationHash,
     result: routeResult,
     stopLabels: createStopLabels(context.snapshot, routeResult.primary),
-    mapData: createRouteMapDataForJourney(routeResult.primary),
+    mapData: createRouteMapDataForJourney(
+      routeResult.primary,
+      new Map(context.snapshot.stops.map((stop) => [stop.id, stop])),
+    ),
     status: context.status,
   };
 }
