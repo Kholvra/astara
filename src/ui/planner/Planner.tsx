@@ -158,19 +158,27 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
       return;
     }
     selectLocation(context, resolution.location);
-    setLocationMessage(
-      resolution.distanceBasis === "straight_line_only"
-        ? "Lokasi dipakai untuk endpoint ini. Perkiraan garis lurus; jalur jalan kaki belum diverifikasi."
-        : "Lokasi dipakai untuk endpoint ini dengan jarak jalan kaki dari data pendukung.",
-    );
+    setLocationMessage(undefined);
   };
 
   const handleLocationError = (
     _context: SearchContext,
-    _failure: LocationRequestFailure,
+    failure: LocationRequestFailure,
   ) => {
+    if (failure === "denied") {
+      setLocationMessage(
+        "Izin lokasi belum aktif. Aktifkan izin lokasi browser atau pilih halte langsung.",
+      );
+      return;
+    }
+    if (failure === "timeout") {
+      setLocationMessage(
+        "Waktu pencarian lokasi habis. Coba lagi atau pilih halte langsung.",
+      );
+      return;
+    }
     setLocationMessage(
-      "Lokasi tidak tersedia atau kurang presisi. Cari halte secara manual.",
+      "Sinyal GPS belum kedeteksi nih. Coba lagi atau pilih halte langsung.",
     );
   };
 
@@ -334,6 +342,7 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
         destination={snapshot.destination}
         locationRequestKey={locationRequestKey}
         locationMessage={locationMessage}
+        onDismissLocationMessage={() => setLocationMessage(undefined)}
         onLocateUser={handleLocationResolved}
         onLocationError={handleLocationError}
         onOpenSearch={openSearch}
@@ -345,7 +354,11 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
         planEnabled={snapshot.state === "ready"}
         timingControls={timingControls}
       >
-        <PlannerMap styleUrl={mapStyleUrl} showRecoveryAction={false} />
+        <PlannerMap
+          styleUrl={mapStyleUrl}
+          showRecoveryAction={false}
+          showLoadingStatus={false}
+        />
       </Module1Explore>
     </main>
   );

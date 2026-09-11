@@ -8,12 +8,14 @@ import {
   type ReactNode,
 } from "react";
 import {
+  AlertCircle,
   ArrowUpDown,
   ChevronRight,
   Landmark,
   RotateCcw,
   ShoppingBag,
   Trophy,
+  X,
 } from "lucide-react";
 
 import type {
@@ -56,6 +58,7 @@ type Module1Props = {
   activeContext: SearchContext;
   destination?: RoutableLocation | null;
   locationMessage?: string;
+  onDismissLocationMessage?: () => void;
   onLocateUser?: (
     context: SearchContext,
     reading: CurrentLocationReading,
@@ -80,6 +83,7 @@ export const Module1Explore = ({
   activeContext,
   destination,
   locationMessage,
+  onDismissLocationMessage,
   onLocateUser,
   onLocationError,
   locationRequestKey,
@@ -163,15 +167,30 @@ export const Module1Explore = ({
             ) : null}
           </div>
           <div className="relative grid gap-2">
-            <div className={onSwap ? "pr-11" : ""}>
+            <div className="relative">
               <EndpointField
                 context="origin"
                 location={origin}
                 active={activeContext === "origin"}
                 onClick={() => onOpenSearch("origin")}
               />
+              {onSwap && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSwap();
+                  }}
+                  disabled={!origin && !destination}
+                  aria-label="Tukar asal dan tujuan"
+                  title="Tukar asal dan tujuan"
+                  className="group absolute left-[28px] top-full z-10 mt-1 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-500 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none after:absolute after:-inset-1.5 after:content-['']"
+                >
+                  <ArrowUpDown className="h-3 w-3 transition-transform duration-300 group-hover:rotate-180" />
+                </button>
+              )}
             </div>
-            <div className={onSwap ? "pr-11" : ""}>
+            <div>
               <EndpointField
                 context="destination"
                 location={destination}
@@ -179,18 +198,6 @@ export const Module1Explore = ({
                 onClick={() => onOpenSearch("destination")}
               />
             </div>
-            {onSwap && (
-              <button
-                type="button"
-                onClick={onSwap}
-                disabled={!origin && !destination}
-                aria-label="Tukar asal dan tujuan"
-                title="Tukar asal dan tujuan"
-                className="absolute right-1 top-1/2 -translate-y-1/2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-xs transition-all hover:bg-slate-50 hover:text-emerald-700 active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-slate-600 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
-              >
-                <ArrowUpDown className="h-3.5 w-3.5" />
-              </button>
-            )}
           </div>
         </div>
       </header>
@@ -251,13 +258,28 @@ export const Module1Explore = ({
           </div>
 
           {locationMessage && (
-            <p
-              className="mb-2 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800"
+            <div
+              className="mb-3 flex items-start gap-2.5 rounded-2xl border border-amber-200/80 bg-amber-50/70 px-3.5 py-2.5 text-amber-900 transition-all"
               role="status"
               aria-live="polite"
             >
-              {locationMessage}
-            </p>
+              <span className="mt-0.5 shrink-0" aria-hidden="true">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+              </span>
+              <p className="min-w-0 flex-1 text-xs leading-5 font-medium">
+                {locationMessage}
+              </p>
+              {onDismissLocationMessage && (
+                <button
+                  type="button"
+                  onClick={onDismissLocationMessage}
+                  className="shrink-0 -mr-1 -mt-0.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:text-slate-700 active:scale-95 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:outline-none"
+                  aria-label="Tutup pesan"
+                >
+                  <X className="h-3.5 w-3.5 stroke-[2.2]" />
+                </button>
+              )}
+            </div>
           )}
 
           <div

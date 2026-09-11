@@ -33,7 +33,7 @@ export function resolveCurrentLocation(
     return {
       state: "invalid",
       message:
-        "Lokasi tidak tersedia atau kurang presisi. Cari halte secara manual.",
+        "Lokasi perangkat tidak terbaca. Coba lagi atau pilih halte langsung.",
     };
   }
 
@@ -45,7 +45,7 @@ export function resolveCurrentLocation(
     return {
       state: "imprecise",
       message:
-        "Lokasi tidak tersedia atau kurang presisi. Cari halte secara manual.",
+        "Akurasi GPS agak meleset (>200m). Pastikan posisimu atau pilih halte langsung.",
     };
   }
 
@@ -68,7 +68,7 @@ export function resolveCurrentLocation(
     return {
       state: "no_nearby_stop",
       message:
-        "Lokasi berada di luar area halte yang didukung. Cari halte secara manual.",
+        "Belum ada halte TransJakarta terdekat (<1,5 km) dari posisimu saat ini.",
     };
   }
 
@@ -109,7 +109,7 @@ export function resolveCurrentLocation(
     return {
       state: "no_nearby_stop",
       message:
-        "Lokasi berada di luar area halte yang didukung. Cari halte secara manual.",
+        "Belum ada halte TransJakarta terdekat (<1,5 km) dari posisimu saat ini.",
     };
   }
 
