@@ -16,7 +16,8 @@ import {
   isRoutableTransferEdge,
   normalizeRouteEngineConfig,
 } from "./routeEngineSupport";
-import { createTransferEdgeIndex, runBoundedSearch } from "./routeEngineSearch";
+import { runRaptorSearch } from "./routeEngineSearch";
+import { createTransferEdgeIndex } from "./routeEngineSearchSupport";
 import type { SearchContext } from "./routeEngineInternalTypes";
 import type {
   RouteCandidateBuildResult,
@@ -133,10 +134,6 @@ export function buildRouteCandidates(
   const validTransferEdges = request.transferEdges.filter((edge) =>
     isRoutableTransferEdge(edge, index),
   );
-  const targetStopIds = new Set<string>([
-    request.planning.destinationId,
-    ...validTransferEdges.map((edge) => edge.from.stopId),
-  ]);
   const context: SearchContext = {
     request,
     snapshot,
@@ -144,15 +141,15 @@ export function buildRouteCandidates(
     config: configResult.config,
     lineage,
     requestedSeconds,
+    nowMs: request.searchClock ?? Date.now,
     activeServiceIdsByDate: getActiveServicesByDate(
       snapshot,
       serviceDateCandidates.map((candidate) => candidate.serviceDate),
     ),
-    targetStopIds,
     transferEdgesByFromStop: createTransferEdgeIndex(validTransferEdges),
   };
 
-  return runBoundedSearch(context);
+  return runRaptorSearch(context);
 }
 
 function validatePlanningRequest(

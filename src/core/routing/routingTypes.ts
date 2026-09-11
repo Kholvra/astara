@@ -14,8 +14,11 @@ import type { TransferEdge } from "~/core/transfer/transferTypes";
 export const DEFAULT_SUPPORTED_ROUTE_TYPES = [3] as const;
 export const DEFAULT_MAX_TRANSFERS = 3;
 export const DEFAULT_MAX_SEARCH_STATES = 5_000;
-export const DEFAULT_ROUTE_RULES_VERSION = "route-engine-v1";
-export const DEFAULT_CANDIDATE_CONFIGURATION_HASH = "route-engine-default-v1";
+export const DEFAULT_MAX_LABEL_EXPANSIONS = 20_000;
+export const DEFAULT_MAX_SEARCH_DURATION_MS = 10_000;
+export const DEFAULT_ROUTE_RULES_VERSION = "route-engine-raptor-v1";
+export const DEFAULT_CANDIDATE_CONFIGURATION_HASH =
+  "route-engine-raptor-default-v1";
 
 export type RouteEvidenceRank = "complete" | "limited" | "unknown";
 
@@ -199,6 +202,8 @@ export type RouteEngineConfig = Readonly<{
   supportedRouteTypes?: readonly number[];
   maxTransfers?: number;
   maxSearchStates?: number;
+  maxLabelExpansions?: number;
+  maxSearchDurationMs?: number;
   routeRulesVersion?: string;
   candidateConfigurationHash?: string;
   freshness?: Freshness;
@@ -210,6 +215,7 @@ export type RouteSelectionRequest = Readonly<{
   planning: TripPlanningInput;
   transferEdges: readonly TransferEdge[];
   config?: RouteEngineConfig;
+  searchClock?: () => number;
 }>;
 
 export type RouteSelectionErrorCode =
@@ -285,8 +291,6 @@ export type RouteEngineIndex = Readonly<{
     string,
     readonly GtfsSnapshot["frequencies"][number][]
   >;
-  tripsByStopId: ReadonlyMap<
-    string,
-    readonly GtfsSnapshot["trips"][number][]
-  >;
+  tripsByStopId: ReadonlyMap<string, readonly GtfsSnapshot["trips"][number][]>;
+  routeIdsByStopId: ReadonlyMap<string, readonly string[]>;
 }>;

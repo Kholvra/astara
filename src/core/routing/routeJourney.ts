@@ -9,10 +9,8 @@ import type {
   RouteCandidate,
   RouteLeg,
 } from "./routingTypes";
-import type {
-  ResolvedRouteEngineConfig,
-  TripRideOption,
-} from "./routeEngineSupport";
+import type { ResolvedRouteEngineConfig } from "./routeEngineSupport";
+import type { TripRideOption } from "./routeEngineRides";
 import type { SearchContext, SearchState } from "./routeEngineInternalTypes";
 
 export function createJourneyCandidate(
