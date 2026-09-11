@@ -88,7 +88,7 @@ export const RouteSummarySheet = ({
                 <span key={leg.legId} className="inline-flex items-center gap-1.5">
                   <span
                     className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-white shadow-2xs"
-                    style={{ backgroundColor: corridor.hex }}
+                    style={{ backgroundColor: corridor.cssVar }}
                   >
                     <Bus className="h-3.5 w-3.5" />
                     <span>Koridor {leg.routeShortName}</span>
@@ -159,19 +159,9 @@ export const RouteSummarySheet = ({
       >
         <div className="min-h-0 overflow-hidden">
           <div className="min-w-0 border-t border-slate-100 pt-3">
-            <div className="mb-3.5 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                  <Footprints className="h-3 w-3" />
-                </span>
-                <span className="text-xs font-bold tracking-wider text-slate-800 uppercase">
-                  Langkah Perjalanan
-                </span>
-              </div>
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                {transitLegs.length <= 1
-                  ? "Langsung tanpa transit"
-                  : `${transitLegs.length - 1}x pindah koridor`}
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                Langkah Perjalanan
               </span>
             </div>
 

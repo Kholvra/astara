@@ -96,11 +96,11 @@ describe("RouteTimeline", () => {
     );
 
     expect(html).toContain("Halte Asal");
-    expect(html).toContain("Halte Keberangkatan");
     expect(html).toContain("Koridor 1");
-    expect(html).toContain("Arah DESTINATION");
+    expect(html).toContain("Arah Destination");
     expect(html).toContain("Halte Tujuan");
-    expect(html).toContain("Tujuan Akhir");
+    expect(html).toContain("Tujuan akhir");
+    expect(html).not.toContain("Halte Keberangkatan");
     expect(html).not.toContain("Halte Halte");
   });
 
@@ -115,7 +115,7 @@ describe("RouteTimeline", () => {
 
     expect(html).toContain("Halte Asal");
     expect(html).toContain("Koridor 1");
-    expect(html).toContain("Transit di Halte");
+    expect(html).toContain("Pindah koridor");
     expect(html).toContain("Koridor 2");
     expect(html).toContain("Halte Tujuan");
   });
