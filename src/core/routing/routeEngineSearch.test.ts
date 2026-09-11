@@ -168,6 +168,21 @@ describe("RAPTOR route search", () => {
       coordinate: [106.807, -6.193] as [number, number],
       lineage: { ...base.stops[base.stops.length - 1]!.lineage, rowNumber: 6 },
     };
+    const branchTrip = {
+      ...base.trips[1]!,
+      id: "trip-3",
+      routeId: routeThree.id,
+      serviceId: "service-3",
+      shapeId: "shape-3",
+      lineage: { ...base.trips[1]!.lineage, rowNumber: 4 },
+    };
+    const branchStopTime = {
+      ...base.stopTimes[2]!,
+      tripId: branchTrip.id,
+      stopId: branchStop.id,
+      stopSequence: 1,
+      lineage: { ...base.stopTimes[2]!.lineage, rowNumber: 6 },
+    };
     const laterBranch = makeTransferEdge({
       edgeId: "edge-z",
       to: { stopId: branchStop.id, transitServiceId: routeThree.id },
@@ -177,6 +192,12 @@ describe("RAPTOR route search", () => {
         ...base,
         routes: [...base.routes, routeThree],
         stops: [...base.stops, branchStop],
+        trips: [...base.trips, branchTrip],
+        stopTimes: [...base.stopTimes, branchStopTime],
+        calendars: [
+          ...base.calendars,
+          { ...base.calendars[1]!, serviceId: branchTrip.serviceId },
+        ],
       },
       planning: makePlanningInput("2026-09-11", "08:00"),
       transferEdges: [makeTransferEdge(), laterBranch],

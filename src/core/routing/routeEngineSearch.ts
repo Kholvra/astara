@@ -15,16 +15,18 @@ import { materializeCandidates } from "./routeEngineCandidates";
 import {
   collectMarkedRouteIds,
   consumeLabelExpansion,
-  createRideTargetStopIds,
   hasDestinationAtOrBelowRound,
   hasZeroTransferDestination,
   isRouteServingStop,
-  isUsefulTransferEdge,
   isWithinSearchBudget,
   isWithinSearchDeadline,
   searchExhaustedFailure,
   type SearchBudget,
 } from "./routeEngineSearchSupport";
+import {
+  createRideTargetStopIds,
+  isUsefulTransferEdge,
+} from "./routeEngineTargetSupport";
 import type {
   RouteCandidate,
   RouteLineage,
@@ -47,7 +49,7 @@ type RideExtension = Readonly<{
 }>;
 
 export function runRaptorSearch(context: SearchContext): RaptorSearchResult {
-  const rideTargetStopIds = createRideTargetStopIds(context);
+  const rideTargetStopIdsByRouteRound = new Map<string, ReadonlySet<string>>();
   let budget: SearchBudget = {
     startedAtMs: context.nowMs(),
     labelExpansions: 0,
@@ -61,7 +63,12 @@ export function runRaptorSearch(context: SearchContext): RaptorSearchResult {
     if (!isWithinSearchBudget(context, budget)) {
       return searchExhaustedFailure();
     }
-    const routeIds = collectMarkedRouteIds(context, markedLabels, budget);
+    const routeIds = collectMarkedRouteIds(
+      context,
+      markedLabels,
+      round,
+      budget,
+    );
     if (routeIds.state === "exhausted") {
       return searchExhaustedFailure();
     }
@@ -84,6 +91,13 @@ export function runRaptorSearch(context: SearchContext): RaptorSearchResult {
         return searchExhaustedFailure();
       }
       routeScanCount += 1;
+      const targetCacheKey = `${round}\u0000${routeId}`;
+      const cachedTargets = rideTargetStopIdsByRouteRound.get(targetCacheKey);
+      const rideTargetStopIds =
+        cachedTargets ?? createRideTargetStopIds(context, routeId, round);
+      if (!cachedTargets) {
+        rideTargetStopIdsByRouteRound.set(targetCacheKey, rideTargetStopIds);
+      }
       const scanResult = scanRoute(
         context,
         routeId,
@@ -292,7 +306,7 @@ function processRide(
     if (!isWithinSearchDeadline(context, budget)) {
       return false;
     }
-    if (!isUsefulTransferEdge(context, edge, ride.route.id)) {
+    if (!isUsefulTransferEdge(context, edge, ride.route.id, round)) {
       continue;
     }
     if (

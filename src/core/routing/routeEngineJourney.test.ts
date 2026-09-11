@@ -72,6 +72,118 @@ describe("RAPTOR journey materialization", () => {
     expect(result.primary.transferCount).toBe(1);
   });
 
+  it("does not scan another transit round after terminal parent-station access", () => {
+    const base = makeTransferSnapshot();
+    const routeThree = {
+      ...base.routes[1]!,
+      id: "route-3",
+      shortName: "3",
+      lineage: { ...base.routes[1]!.lineage, rowNumber: 4 },
+    };
+    const tripThree = {
+      ...base.trips[1]!,
+      id: "trip-3",
+      routeId: routeThree.id,
+      serviceId: "service-3",
+      shapeId: "shape-3",
+      lineage: { ...base.trips[1]!.lineage, rowNumber: 4 },
+    };
+    const branchStop = {
+      ...base.stops[0]!,
+      id: "hub-c",
+      name: "Hub C",
+      coordinate: [106.807, -6.193] as [number, number],
+      lineage: { ...base.stops[0]!.lineage, rowNumber: 6 },
+    };
+    const branchDestination = {
+      ...base.stops[1]!,
+      id: "hub-d",
+      name: "Hub D",
+      coordinate: [106.808, -6.192] as [number, number],
+      lineage: { ...base.stops[1]!.lineage, rowNumber: 7 },
+    };
+    const branchStopTimes = [
+      {
+        ...base.stopTimes[2]!,
+        tripId: tripThree.id,
+        stopId: branchStop.id,
+        stopSequence: 1,
+        arrivalTime: parseGtfsTime("08:50:00"),
+        departureTime: parseGtfsTime("08:50:00"),
+        lineage: { ...base.stopTimes[2]!.lineage, rowNumber: 6 },
+      },
+      {
+        ...base.stopTimes[3]!,
+        tripId: tripThree.id,
+        stopId: branchDestination.id,
+        stopSequence: 2,
+        arrivalTime: parseGtfsTime("09:10:00"),
+        departureTime: parseGtfsTime("09:10:00"),
+        lineage: { ...base.stopTimes[3]!.lineage, rowNumber: 7 },
+      },
+    ];
+    const parentDestination = {
+      ...base.stops[1]!,
+      id: "destination-station",
+      name: "Destination Station",
+      locationType: 1,
+      coordinate: [106.81, -6.19] as [number, number],
+      lineage: { ...base.stops[1]!.lineage, rowNumber: 8 },
+    };
+    const result = selectPrimaryRoute({
+      snapshot: {
+        ...base,
+        routes: [...base.routes, routeThree],
+        stops: [
+          ...base.stops,
+          branchStop,
+          branchDestination,
+          parentDestination,
+        ],
+        trips: [...base.trips, tripThree],
+        stopTimes: [...base.stopTimes, ...branchStopTimes],
+        calendars: [
+          ...base.calendars,
+          {
+            ...base.calendars[1]!,
+            serviceId: tripThree.serviceId,
+            lineage: { ...base.calendars[1]!.lineage, rowNumber: 4 },
+          },
+        ],
+      },
+      planning: {
+        ...makePlanningInput("2026-09-11", "08:00"),
+        destinationId: parentDestination.id,
+      },
+      transferEdges: [
+        makeTransferEdge(),
+        makeTransferEdge({
+          edgeId: "edge-final-parent",
+          from: { stopId: "destination" },
+          to: { stopId: parentDestination.id },
+        }),
+        makeTransferEdge({
+          edgeId: "edge-branch-after-destination",
+          from: { stopId: "destination", transitServiceId: "route-2" },
+          to: { stopId: branchStop.id, transitServiceId: routeThree.id },
+        }),
+      ],
+      config: { maxSearchStates: 2 },
+    });
+
+    expect(result.state).toBe("selected");
+    if (result.state !== "selected") {
+      return;
+    }
+    expect(result.primary.legs.map((leg) => leg.kind)).toEqual([
+      "transit",
+      "walking",
+      "transit",
+      "walking",
+    ]);
+    expect(result.primary.destinationStopId).toBe(parentDestination.id);
+  });
+
   it("rejects a transfer that arrives after the next service departs", () => {
     const result = selectPrimaryRoute({
       snapshot: makeTransferSnapshot(),

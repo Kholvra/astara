@@ -164,6 +164,59 @@ export function createRouteEngineIndex(
   };
 }
 
+export function areStopsTransitConnected(
+  index: RouteEngineIndex,
+  transferEdges: readonly TransferEdge[],
+  originStopId: string,
+  destinationStopId: string,
+  config: Pick<ResolvedRouteEngineConfig, "supportedRouteTypes">,
+): boolean {
+  if (originStopId === destinationStopId) return true;
+
+  const graph = new Map<string, Set<string>>();
+  const connect = (left: string, right: string): void => {
+    const leftNeighbors = graph.get(left) ?? new Set<string>();
+    const rightNeighbors = graph.get(right) ?? new Set<string>();
+    leftNeighbors.add(right);
+    rightNeighbors.add(left);
+    graph.set(left, leftNeighbors);
+    graph.set(right, rightNeighbors);
+  };
+  const stopNode = (stopId: string): string => `stop:${stopId}`;
+  const routeNode = (routeId: string): string => `route:${routeId}`;
+
+  for (const [stopId, routeIds] of index.routeIdsByStopId.entries()) {
+    for (const routeId of routeIds) {
+      const route = index.routesById.get(routeId);
+      if (!route || !config.supportedRouteTypes.includes(route.routeType)) {
+        continue;
+      }
+      connect(stopNode(stopId), routeNode(routeId));
+    }
+  }
+  for (const edge of transferEdges) {
+    if (edge.eligibleForRouting && edge.connectionState === "routable") {
+      connect(stopNode(edge.from.stopId), stopNode(edge.to.stopId));
+    }
+  }
+
+  const originNode = stopNode(originStopId);
+  const destinationNode = stopNode(destinationStopId);
+  const pending = [originNode];
+  const visited = new Set([originNode]);
+  while (pending.length > 0) {
+    const current = pending.shift();
+    if (!current) continue;
+    if (current === destinationNode) return true;
+    for (const neighbor of graph.get(current) ?? []) {
+      if (visited.has(neighbor)) continue;
+      visited.add(neighbor);
+      pending.push(neighbor);
+    }
+  }
+  return false;
+}
+
 export function createRouteLineage(
   snapshot: GtfsSnapshot,
   config: ResolvedRouteEngineConfig,

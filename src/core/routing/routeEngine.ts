@@ -13,11 +13,16 @@ import {
   createRouteEngineIndex,
   createRouteLineage,
   getActiveServicesByDate,
+  areStopsTransitConnected,
   isRoutableTransferEdge,
   normalizeRouteEngineConfig,
 } from "./routeEngineSupport";
 import { runRaptorSearch } from "./routeEngineSearch";
-import { createTransferEdgeIndex } from "./routeEngineSearchSupport";
+import {
+  createRouteTransferDistanceIndex,
+  createTransferEdgeIndex,
+} from "./routeEngineSearchSupport";
+import { createDestinationAccessStopIds } from "./routeEngineTargetSupport";
 import type { SearchContext } from "./routeEngineInternalTypes";
 import type {
   RouteCandidateBuildResult,
@@ -130,10 +135,30 @@ export function buildRouteCandidates(
     };
   }
 
-  const lineage = createRouteLineage(snapshot, configResult.config);
   const validTransferEdges = request.transferEdges.filter((edge) =>
     isRoutableTransferEdge(edge, index),
   );
+  if (
+    !areStopsTransitConnected(
+      index,
+      validTransferEdges,
+      request.planning.originId,
+      request.planning.destinationId,
+      configResult.config,
+    )
+  ) {
+    return {
+      state: "failed",
+      failure: createFailure(
+        "NO_ELIGIBLE_JOURNEY",
+        "No supported transit connection links the selected stops.",
+        "Choose another supported stop or a destination with an approved transfer.",
+        "no-route",
+      ),
+    };
+  }
+
+  const lineage = createRouteLineage(snapshot, configResult.config);
   const context: SearchContext = {
     request,
     snapshot,
@@ -147,6 +172,16 @@ export function buildRouteCandidates(
       serviceDateCandidates.map((candidate) => candidate.serviceDate),
     ),
     transferEdgesByFromStop: createTransferEdgeIndex(validTransferEdges),
+    routeTransferDistanceToDestination: createRouteTransferDistanceIndex(
+      index,
+      validTransferEdges,
+      request.planning.destinationId,
+      configResult.config,
+    ),
+    destinationAccessStopIds: createDestinationAccessStopIds(
+      validTransferEdges,
+      request.planning.destinationId,
+    ),
   };
 
   return runRaptorSearch(context);

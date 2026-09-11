@@ -34,6 +34,8 @@ export type SearchContext = Readonly<{
   nowMs: () => number;
   activeServiceIdsByDate: ReadonlyMap<string, ReadonlySet<string>>;
   transferEdgesByFromStop: ReadonlyMap<string, readonly TransferEdge[]>;
+  routeTransferDistanceToDestination: ReadonlyMap<string, number>;
+  destinationAccessStopIds: ReadonlySet<string>;
 }>;
 
 export type JourneyCandidateFactory = (
