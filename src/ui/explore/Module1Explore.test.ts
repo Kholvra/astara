@@ -222,7 +222,7 @@ describe("Module1Explore markup and layout contract", () => {
     expect(html).toContain("overflow-hidden");
   });
 
-  it("renders loading card when plannerState is loading", () => {
+  it("delegates loading indicator to timing controls without redundant loading card", () => {
     const html = renderToStaticMarkup(
       createElement(Module1Explore, {
         activeContext: "origin",
@@ -245,15 +245,20 @@ describe("Module1Explore markup and layout contract", () => {
           verification: "Terverifikasi",
         },
         plannerState: "loading",
+        timingControls: createElement(
+          "div",
+          { id: "planner-status-loading" },
+          "Menghitung rute",
+        ),
         onOpenSearch: () => undefined,
         onSelectDestination: () => undefined,
       }),
     );
 
-    expect(html).toContain("route-loading-card");
-    expect(html).toContain("Mencari rute terbaik…");
-    expect(html).toContain("Menghubungkan Monas ke Blok M");
+    expect(html).not.toContain("route-loading-card");
+    expect(html).not.toContain("Mencari rute terbaik…");
     expect(html).toContain("TUJUAN POPULER");
+    expect(html).toContain("planner-status-loading");
     expect(html).toContain("overflow-hidden");
   });
 });

@@ -12,7 +12,6 @@ import {
   ArrowUpDown,
   ChevronRight,
   Landmark,
-  Loader2,
   RotateCcw,
   Search,
   ShoppingBag,
@@ -114,7 +113,7 @@ export const Module1Explore = ({
   timingControls,
   children,
   route,
-  plannerState,
+  plannerState: _plannerState,
   plannerMessage: _plannerMessage,
   departAt,
   fare,
@@ -123,8 +122,6 @@ export const Module1Explore = ({
   mapNotice,
   onMapRetry,
 }: Module1Props) => {
-  const isLoadingState = !route && plannerState === "loading";
-
   const [localExpanded, setLocalExpanded] = useState(planEnabled);
   const isExpanded = stepsOpen ?? localExpanded;
   const dragStartYRef = useRef<number | null>(null);
@@ -369,25 +366,6 @@ export const Module1Explore = ({
             />
           ) : (
             <>
-              {isLoadingState && (
-                <div
-                  id="route-loading-card"
-                  role="status"
-                  aria-live="polite"
-                  className="mb-3 flex items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3.5 py-2.5 text-slate-700 shadow-2xs"
-                >
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-emerald-600" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-slate-900">
-                      Mencari rute terbaik…
-                    </p>
-                    <p className="text-[11px] text-slate-500 truncate">
-                      Menghubungkan {origin?.name ?? "asal"} ke {destination?.name ?? "tujuan"}
-                    </p>
-                  </div>
-                </div>
-              )}
-
               <div className="mb-2.5 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
                 TUJUAN POPULER
               </div>
