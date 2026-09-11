@@ -10,7 +10,9 @@ import {
   type DepartAtInput,
   type FareStatus,
 } from "~/core/timing/tripTiming";
+import { getCorridorStyle } from "~/ui/route-card/corridorTokens";
 import { createRouteCardViewModel } from "~/ui/route-card/routeCardModel";
+import { RouteTimeline } from "~/ui/route-card/RouteTimeline";
 
 export type RouteSummarySheetProps = Readonly<{
   route: PlannerPlanSuccess;
@@ -80,17 +82,23 @@ export const RouteSummarySheet = ({
         <div className="min-w-0 flex-1">
           {/* Transit Line Badges */}
           <div className="flex flex-wrap items-center gap-1.5">
-            {transitLegs.map((leg, idx) => (
-              <span key={leg.legId} className="inline-flex items-center gap-1.5">
-                <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs">
-                  <Bus className="h-3.5 w-3.5" />
-                  <span>Koridor {leg.routeShortName}</span>
+            {transitLegs.map((leg, idx) => {
+              const corridor = getCorridorStyle(leg.routeShortName);
+              return (
+                <span key={leg.legId} className="inline-flex items-center gap-1.5">
+                  <span
+                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-white shadow-2xs"
+                    style={{ backgroundColor: corridor.hex }}
+                  >
+                    <Bus className="h-3.5 w-3.5" />
+                    <span>Koridor {leg.routeShortName}</span>
+                  </span>
+                  {idx < transitLegs.length - 1 && (
+                    <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
+                  )}
                 </span>
-                {idx < transitLegs.length - 1 && (
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
-                )}
-              </span>
-            ))}
+              );
+            })}
             <span className="inline-flex items-center rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
               {route.result.primary.transferCount === 0
                 ? "Langsung"
@@ -151,54 +159,23 @@ export const RouteSummarySheet = ({
       >
         <div className="min-h-0 overflow-hidden">
           <div className="min-w-0 border-t border-slate-100 pt-3">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                <Footprints className="h-3 w-3" />
-              </span>
-              <span className="text-xs font-bold tracking-wider text-slate-800 uppercase">
-                Langkah Perjalanan
-              </span>
+            <div className="mb-3.5 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                  <Footprints className="h-3 w-3" />
+                </span>
+                <span className="text-xs font-bold tracking-wider text-slate-800 uppercase">
+                  Langkah Perjalanan
+                </span>
+              </div>
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                {model.steps.length} langkah
+                {transitLegs.length <= 1
+                  ? "Langsung tanpa transit"
+                  : `${transitLegs.length - 1}x pindah koridor`}
               </span>
             </div>
 
-            <ol className="relative ml-2 space-y-4 border-l-2 border-slate-200 pl-4">
-              {model.steps.map((step, idx) => {
-                const isFirst = idx === 0;
-                const isLast = idx === model.steps.length - 1;
-                const isTransit = step.kind === "transit";
-
-                return (
-                  <li key={step.id} className="relative">
-                    <span
-                      className={`absolute -left-[23px] top-1 h-3.5 w-3.5 rounded-full border-2 border-white ${
-                        isFirst
-                          ? "bg-emerald-600 ring-2 ring-emerald-100"
-                          : isLast
-                            ? "bg-slate-800 ring-2 ring-slate-200"
-                            : isTransit
-                              ? "bg-emerald-500"
-                              : "bg-amber-400"
-                      }`}
-                    />
-                    <div>
-                      <p className="text-xs font-bold text-slate-900">
-                        {step.title}
-                      </p>
-                      <p className="mt-0.5 text-xs text-slate-600">
-                        {step.detail}
-                      </p>
-                      {step.status === "Perlu dicek" && (
-                        <p className="mt-1 text-[11px] font-medium text-amber-700">
-                          {step.statusDetail}
-                        </p>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
+            <RouteTimeline route={route} steps={model.steps} />
           </div>
         </div>
       </div>

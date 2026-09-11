@@ -74,13 +74,20 @@ function createWalkingStep(
   if (distance) details.push(distance);
   if (duration) details.push(`Perkiraan ${duration}`);
   if (leg.coordinates.length === 0) {
-    details.push("Detail jalur belum tersedia");
+    details.push(
+      from === to ? "Area peron halte" : "Detail jalur belum tersedia",
+    );
   }
+
+  const title =
+    from === to
+      ? `Akses peron di ${from}`
+      : `Pindah dari ${from} ke ${to}`;
 
   return {
     id: leg.legId,
     kind: "walking",
-    title: `Pindah dari ${from} ke ${to}`,
+    title,
     detail: details.join(" • "),
     status: status.label,
     statusDetail:
