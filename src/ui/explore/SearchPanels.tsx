@@ -39,29 +39,29 @@ const QUICK_SUGGESTIONS = [
     id: "monas",
     name: "Monas",
     query: "Monas",
-    subtitle: "Halte BRT Koridor 1 & 2",
-    icon: <Landmark className="h-4 w-4 text-emerald-700" />,
+    subtitle: "Halte Monas • Koridor 1 & 2",
+    icon: <Landmark className="h-5 w-5 text-emerald-700" />,
   },
   {
     id: "blok-m",
     name: "Blok M",
     query: "Blok M",
-    subtitle: "Terminal & Integrasi MRT",
-    icon: <BusFront className="h-4 w-4 text-emerald-700" />,
+    subtitle: "Terminal Blok M • Integrasi MRT",
+    icon: <BusFront className="h-5 w-5 text-emerald-700" />,
   },
   {
     id: "bundaran-hi",
     name: "Bundaran HI",
     query: "Bundaran HI",
-    subtitle: "Halte Ikonik Koridor 1",
-    icon: <Compass className="h-4 w-4 text-emerald-700" />,
+    subtitle: "Halte Bundaran HI • MRT",
+    icon: <Compass className="h-5 w-5 text-emerald-700" />,
   },
   {
     id: "gbk",
     name: "Gelora Bung Karno",
     query: "GBK",
-    subtitle: "Halte Koridor 1",
-    icon: <Trophy className="h-4 w-4 text-emerald-700" />,
+    subtitle: "Halte GBK Senayan",
+    icon: <Trophy className="h-5 w-5 text-emerald-700" />,
   },
 ] as const;
 
@@ -74,33 +74,33 @@ export const SearchOutcomePanel = ({
   if (outcome.state === "idle") {
     return (
       <div className="px-4 pt-4 pb-6">
-        <div className="mb-2.5 px-1 text-[11px] font-bold tracking-[0.14em] text-slate-400 uppercase">
+        <div className="mb-3 px-1 text-xs font-bold tracking-wider text-slate-400 uppercase">
           PILIHAN CEPAT
         </div>
-        <div className="grid gap-2">
+        <div className="grid gap-2.5">
           {QUICK_SUGGESTIONS.map((suggestion) => (
             <button
               key={suggestion.id}
               type="button"
               onClick={() => onQuickSelect?.(suggestion.query)}
-              className="flex min-h-[56px] w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3.5 py-2.5 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none active:scale-[0.99]"
+              className="group flex min-h-[64px] w-full cursor-pointer items-center gap-3.5 rounded-2xl border border-slate-200/90 bg-white px-4 py-3 text-left shadow-2xs transition-all hover:border-emerald-300 hover:bg-emerald-50/40 hover:shadow-xs focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none active:scale-[0.99]"
             >
               <span
                 aria-hidden="true"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-200/60 bg-white"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 transition-colors group-hover:bg-emerald-100 group-hover:text-emerald-800"
               >
                 {suggestion.icon}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm leading-5 font-bold text-slate-900">
+                <span className="block text-base leading-snug font-bold text-slate-900 group-hover:text-emerald-950">
                   {suggestion.name}
                 </span>
-                <span className="block text-xs leading-4 text-slate-500">
+                <span className="mt-0.5 block text-xs leading-4 text-slate-500">
                   {suggestion.subtitle}
                 </span>
               </span>
               <ChevronRight
-                className="h-4 w-4 shrink-0 text-slate-400"
+                className="h-5 w-5 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-emerald-600"
                 aria-hidden="true"
               />
             </button>
@@ -228,30 +228,30 @@ const SearchResultButton = ({ result, onSelect }: SearchResultButtonProps) => {
     <button
       type="button"
       onClick={() => onSelect(result)}
-      className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3.5 py-2.5 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none active:scale-[0.99]"
+      className="group flex min-h-[64px] w-full cursor-pointer items-center gap-3.5 rounded-2xl border border-slate-200/90 bg-white px-4 py-3 text-left shadow-2xs transition-all hover:border-emerald-300 hover:bg-emerald-50/40 hover:shadow-xs focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none active:scale-[0.99]"
       aria-label={`Pilih ${result.title}`}
     >
       <span
         aria-hidden="true"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-200/60 bg-white text-slate-700"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 transition-colors group-hover:bg-emerald-100 group-hover:text-emerald-800"
       >
         {isPlace ? (
-          <MapPin className="h-4 w-4 text-emerald-700" />
+          <MapPin className="h-5 w-5 text-amber-600" />
         ) : (
-          <BusFront className="h-4 w-4 text-emerald-700" />
+          <BusFront className="h-5 w-5 text-emerald-700" />
         )}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm leading-5 font-bold break-words text-slate-900">
+        <span className="block text-base leading-snug font-bold break-words text-slate-900 group-hover:text-emerald-950">
           {result.title}
         </span>
-        <span className="block text-xs leading-4 break-words text-slate-500">
+        <span className="mt-0.5 block text-xs leading-4 break-words text-slate-500">
           {getResultTypeLabel(result)}
           {result.subtitle ? ` • ${result.subtitle}` : ""}
         </span>
       </span>
       <ChevronRight
-        className="h-4 w-4 shrink-0 text-slate-400"
+        className="h-5 w-5 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-emerald-600"
         aria-hidden="true"
       />
     </button>

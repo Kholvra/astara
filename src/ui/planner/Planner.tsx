@@ -243,100 +243,108 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
     </div>
   );
 
-  if (screen === "search") {
-    return (
-      <main data-planner-state={snapshot.state} className="h-full w-full">
-        <Module2Search
-          context={activeContext}
-          initialQuery={initialQuery}
-          localIndexAvailable={snapshot.catalog !== null}
-          searchItems={snapshot.catalog?.items ?? []}
-          onBack={handleSearchBack}
-          onSelectLocation={selectLocation}
-        />
-      </main>
-    );
-  }
-
   return (
-    <main data-planner-state={snapshot.state} className="h-full w-full">
-      <Module1Explore
-        activeContext={activeContext}
-        destination={snapshot.destination}
-        locationRequestKey={locationRequestKey}
-        locationMessage={locationMessage}
-        onDismissLocationMessage={() => setLocationMessage(undefined)}
-        onLocateUser={handleLocationResolved}
-        onLocationError={handleLocationError}
-        onOpenSearch={openSearch}
-        onSelectDestination={(query) => openSearch("destination", query)}
-        onPlan={snapshot.state === "ready" ? controller.plan : undefined}
-        onReset={handleReset}
-        onSwap={handleSwap}
-        origin={snapshot.origin}
-        planEnabled={snapshot.state === "ready"}
-        timingControls={timingControls}
-        route={snapshot.route}
-        plannerState={snapshot.state}
-        plannerMessage={snapshot.message}
-        departAt={snapshot.departAt}
-        stepsOpen={
-          snapshot.route
-            ? snapshot.state === "detail" ||
-              (snapshot.state === "map-failure" &&
-                snapshot.mapReturnState === "detail" &&
-                snapshot.detailOpen)
-            : undefined
-        }
-        onStepsToggle={(open) => {
-          if (open) {
-            controller.openDetail();
-            if (
-              snapshot.state === "map-failure" &&
-              snapshot.mapReturnState === "result"
-            ) {
-              pushHistoryMarker("detail");
-            }
-          } else {
-            controller.closeDetail();
-            if (
-              snapshot.state === "detail" ||
-              (snapshot.state === "map-failure" &&
-                snapshot.mapReturnState === "detail")
-            ) {
-              replaceHistoryMarker("result");
-            }
+    <main
+      data-planner-state={snapshot.state}
+      className="relative h-full w-full overflow-hidden"
+    >
+      <div className="h-full w-full" aria-hidden={screen === "search"}>
+        <Module1Explore
+          activeContext={activeContext}
+          destination={snapshot.destination}
+          locationRequestKey={locationRequestKey}
+          locationMessage={locationMessage}
+          onDismissLocationMessage={() => setLocationMessage(undefined)}
+          onLocateUser={handleLocationResolved}
+          onLocationError={handleLocationError}
+          onOpenSearch={openSearch}
+          onSelectDestination={(query) => openSearch("destination", query)}
+          onPlan={snapshot.state === "ready" ? controller.plan : undefined}
+          onReset={handleReset}
+          onSwap={handleSwap}
+          origin={snapshot.origin}
+          planEnabled={snapshot.state === "ready"}
+          timingControls={timingControls}
+          route={snapshot.route}
+          plannerState={snapshot.state}
+          plannerMessage={snapshot.message}
+          departAt={snapshot.departAt}
+          stepsOpen={
+            snapshot.route
+              ? snapshot.state === "detail" ||
+                (snapshot.state === "map-failure" &&
+                  snapshot.mapReturnState === "detail" &&
+                  snapshot.detailOpen)
+              : undefined
           }
-        }}
-        mapNotice={
-          snapshot.state === "map-failure"
-            ? "Peta tidak dapat dimuat. Langkah perjalanan tetap dapat diikuti."
-            : undefined
-        }
-        onMapRetry={
-          snapshot.mapRetryAvailable
-            ? () => {
-                setMapRetryNonce((value) => value + 1);
-                controller.retryMap();
+          onStepsToggle={(open) => {
+            if (open) {
+              controller.openDetail();
+              if (
+                snapshot.state === "map-failure" &&
+                snapshot.mapReturnState === "result"
+              ) {
+                pushHistoryMarker("detail");
               }
-            : undefined
-        }
-      >
-        <PlannerMap
-          key={mapRetryNonce > 0 ? `map-retry-${mapRetryNonce}` : undefined}
-          styleUrl={mapStyleUrl}
-          showRecoveryAction={false}
-          showLoadingStatus={false}
-          showStatusPanel={false}
-          showLegend={false}
-          showDecisionMarkers={false}
-          userLocation={userLocation}
-          route={snapshot.route?.mapData}
-          onMapFailure={() => {
-            controller.reportMapFailure(undefined, mapRetryNonce);
+            } else {
+              controller.closeDetail();
+              if (
+                snapshot.state === "detail" ||
+                (snapshot.state === "map-failure" &&
+                  snapshot.mapReturnState === "detail")
+              ) {
+                replaceHistoryMarker("result");
+              }
+            }
           }}
-        />
-      </Module1Explore>
+          mapNotice={
+            snapshot.state === "map-failure"
+              ? "Peta tidak dapat dimuat. Langkah perjalanan tetap dapat diikuti."
+              : undefined
+          }
+          onMapRetry={
+            snapshot.mapRetryAvailable
+              ? () => {
+                  setMapRetryNonce((value) => value + 1);
+                  controller.retryMap();
+                }
+              : undefined
+          }
+        >
+          <PlannerMap
+            key={mapRetryNonce > 0 ? `map-retry-${mapRetryNonce}` : undefined}
+            styleUrl={mapStyleUrl}
+            showRecoveryAction={false}
+            showLoadingStatus={false}
+            showStatusPanel={false}
+            showLegend={false}
+            showDecisionMarkers={false}
+            userLocation={userLocation}
+            route={snapshot.route?.mapData}
+            onMapFailure={() => {
+              controller.reportMapFailure(undefined, mapRetryNonce);
+            }}
+          />
+        </Module1Explore>
+      </div>
+
+      {screen === "search" && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Pencarian ${activeContext === "origin" ? "asal" : "tujuan"}`}
+          className="animate-in fade-in absolute inset-0 z-40 flex flex-col bg-white duration-150"
+        >
+          <Module2Search
+            context={activeContext}
+            initialQuery={initialQuery}
+            localIndexAvailable={snapshot.catalog !== null}
+            searchItems={snapshot.catalog?.items ?? []}
+            onBack={handleSearchBack}
+            onSelectLocation={selectLocation}
+          />
+        </div>
+      )}
     </main>
   );
 };

@@ -8,7 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, Search, X } from "lucide-react";
 
 import {
   boundSearchQuery,
@@ -131,43 +131,50 @@ export const Module2Search = ({
       className="flex h-full w-full flex-col overflow-hidden bg-white font-sans"
       onKeyDown={handleKeyDown}
     >
-      <header className="border-b border-slate-100 px-4 pt-5 pb-3">
-        <div className="mb-2 px-1 text-[11px] font-bold tracking-[0.16em] text-slate-400 uppercase">
-          PILIH {contextLabel}
-        </div>
-        <div className="flex min-h-[52px] w-full items-center rounded-2xl border border-slate-200 bg-slate-50/80 px-3 transition-colors focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20">
+      <header className="border-b border-slate-100 bg-white px-4 py-3.5">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => (pending ? setPending(null) : onBack())}
-            className="mr-1 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-slate-600 transition-colors hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-95"
+            className="flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-2xl border border-slate-200/80 bg-slate-50 text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none active:scale-95"
             aria-label={pending ? "Kembali ke hasil pencarian" : "Kembali"}
           >
-            <ArrowLeft className="h-5 w-5 stroke-[2.2]" aria-hidden="true" />
+            <ArrowLeft className="h-6 w-6 stroke-[2.2]" aria-hidden="true" />
           </button>
-          <label className="sr-only" htmlFor="location-search-input">
-            Cari {contextLabel}
-          </label>
-          <input
-            id="location-search-input"
-            ref={inputRef}
-            type="search"
-            value={searchTerm}
-            onChange={(event) => runSearch(event.target.value)}
-            placeholder="Cari halte, rute, atau tempat…"
-            maxLength={MAX_QUERY_LENGTH}
-            className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold text-slate-900 caret-emerald-600 outline-none placeholder:font-medium placeholder:text-slate-400"
-            autoFocus
-          />
-          {searchTerm && (
-            <button
-              type="button"
-              onClick={() => runSearch("")}
-              className="ml-1 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-slate-400 transition-colors hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-              aria-label="Hapus pencarian"
-            >
-              <X className="h-4 w-4 stroke-[2.2]" aria-hidden="true" />
-            </button>
-          )}
+          <div className="flex min-h-[50px] min-w-0 flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/90 px-4 transition-all focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20">
+            <Search
+              className="h-5 w-5 shrink-0 text-slate-400"
+              aria-hidden="true"
+            />
+            <label className="sr-only" htmlFor="location-search-input">
+              Cari {contextLabel}
+            </label>
+            <input
+              id="location-search-input"
+              ref={inputRef}
+              type="search"
+              value={searchTerm}
+              onChange={(event) => runSearch(event.target.value)}
+              placeholder={
+                context === "origin"
+                  ? "Cari halte atau lokasi asal…"
+                  : "Mau ke mana? Ketik halte tujuan…"
+              }
+              maxLength={MAX_QUERY_LENGTH}
+              className="min-w-0 flex-1 bg-transparent text-base font-semibold text-slate-900 caret-emerald-600 outline-none placeholder:text-slate-400"
+              autoFocus
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => runSearch("")}
+                className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full bg-slate-200 text-slate-600 transition-colors hover:bg-slate-300 hover:text-slate-800 focus-visible:ring-2 focus-visible:ring-emerald-500"
+                aria-label="Hapus pencarian"
+              >
+                <X className="h-4 w-4 stroke-[2.5]" aria-hidden="true" />
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
