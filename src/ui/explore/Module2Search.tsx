@@ -142,7 +142,10 @@ export const Module2Search = ({
             <ArrowLeft className="h-6 w-6 stroke-[2.2]" aria-hidden="true" />
           </button>
           <div className="flex min-h-[50px] min-w-0 flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/90 px-4 transition-all focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/20">
-            <Search className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
+            <Search
+              className="h-5 w-5 shrink-0 text-slate-400"
+              aria-hidden="true"
+            />
             <label className="sr-only" htmlFor="location-search-input">
               Cari {contextLabel}
             </label>
