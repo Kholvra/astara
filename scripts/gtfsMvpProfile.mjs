@@ -1,14 +1,34 @@
-export const MVP_PROFILE_VERSION = "tj-mvp-core-v1";
+export const MVP_PROFILE_VERSION = "tj-mvp-core-v2";
 
 /** @typedef {import("../src/core/ingestion/gtfsTypes").GtfsSnapshot} GtfsSnapshot */
 /** @typedef {import("../src/core/ingestion/gtfsTypes").GtfsStop} GtfsStop */
 
 const MVP_PROFILE_LIMITATION =
-  "MVP profile excludes Mikrotrans and regional/tourism services.";
+  "MVP profile excludes Mikrotrans and Bus Wisata services.";
 const BRT_ROUTE_IDS = new Set(
   Array.from({ length: 14 }, (_, index) => String(index + 1)),
 );
 const REGULAR_ROUTE_ID_PATTERN = /^\d+[A-Z]$/;
+const TRANSJABODETABEK_ROUTE_IDS = new Set([
+  "B11",
+  "B21",
+  "B25",
+  "B41",
+  "B51",
+  "D11",
+  "D21",
+  "D41",
+  "P11",
+  "S11",
+  "S21",
+  "S22",
+  "S61",
+  "SH1",
+  "SH2",
+  "T11",
+  "T12",
+  "T31",
+]);
 
 /** @param {string} routeId */
 export function isMvpRouteId(routeId) {
@@ -18,7 +38,8 @@ export function isMvpRouteId(routeId) {
   const normalizedRouteId = routeId.trim().toUpperCase();
   return (
     BRT_ROUTE_IDS.has(normalizedRouteId) ||
-    REGULAR_ROUTE_ID_PATTERN.test(normalizedRouteId)
+    REGULAR_ROUTE_ID_PATTERN.test(normalizedRouteId) ||
+    TRANSJABODETABEK_ROUTE_IDS.has(normalizedRouteId)
   );
 }
 

@@ -79,6 +79,46 @@ describe("selectPrimaryRoute", () => {
     expect(result).not.toHaveProperty("primary");
   });
 
+  it("routes a retained Transjabodetabek service by its real route ID", () => {
+    const base = makeSnapshot();
+    const route = base.routes[0];
+    const trip = base.trips[0];
+    const snapshotId = "tj-mvp-core-v2-tj-static-2026-09-10";
+    if (!route || !trip) {
+      throw new Error("TJBB fixture requires a base route and trip");
+    }
+
+    const result = selectPrimaryRoute({
+      snapshot: {
+        ...base,
+        metadata: {
+          ...base.metadata,
+          snapshotId,
+        },
+        routes: [{ ...route, id: "B11", shortName: "B11" }],
+        trips: [{ ...trip, routeId: "B11" }],
+        stops: base.stops.map((stop) => ({
+          ...stop,
+          lineage: { ...stop.lineage, snapshotId },
+        })),
+      },
+      planning: makePlanningInput("2026-09-11", "08:00"),
+      transferEdges: [],
+    });
+
+    expect(result.state).toBe("selected");
+    if (result.state !== "selected") {
+      return;
+    }
+
+    expect(result.primary.legs).toHaveLength(1);
+    expect(result.primary.legs[0]).toMatchObject({
+      kind: "transit",
+      routeId: "B11",
+      tripId: "trip-1",
+    });
+  });
+
   it("fails fast when endpoints belong to disconnected route components", () => {
     const base = makeSnapshot();
     const route = base.routes[0];
