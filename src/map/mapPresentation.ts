@@ -81,9 +81,9 @@ export function createMapLayerSpecifications(): readonly LayerSpecification[] {
       source: MAP_SOURCE_IDS.selectedRoute,
       filter: routeLineFilter("transit"),
       paint: {
-        "line-color": "#0f766e",
+        "line-color": ["coalesce", ["get", "color"], "#0f766e"],
         "line-width": 5,
-        "line-opacity": 0.9,
+        "line-opacity": 0.95,
       },
     },
     {

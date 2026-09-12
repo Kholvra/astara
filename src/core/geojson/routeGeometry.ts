@@ -21,6 +21,7 @@ export type RouteMapLeg = Readonly<{
   label: string;
   geometryState: GeometryState;
   coordinates: readonly GeoCoordinate[];
+  color?: string;
   evidenceState?: EvidenceState;
   connectionState?: ConnectionState;
 }>;
@@ -75,6 +76,7 @@ export type RouteMapLineProperties = Readonly<{
   geometryState: GeometryState;
   lineStyle: "solid" | "dashed";
   label: string;
+  color?: string;
   evidenceState?: EvidenceState;
   connectionState?: ConnectionState;
 }>;
@@ -203,6 +205,7 @@ export function createRouteMapPayload(data: RouteMapData): RouteMapPayload {
           geometryState: leg.geometryState,
           lineStyle: leg.mode === "transit" ? "solid" : "dashed",
           label: leg.label,
+          ...(leg.color ? { color: leg.color } : {}),
           ...(leg.evidenceState ? { evidenceState: leg.evidenceState } : {}),
           ...(leg.connectionState
             ? { connectionState: leg.connectionState }

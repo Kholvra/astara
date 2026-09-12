@@ -110,6 +110,9 @@ describe("map presentation contract", () => {
     expect(transit?.type).toBe("line");
     expect(walking?.type).toBe("line");
     expect(transit?.paint).not.toHaveProperty("line-dasharray");
+    expect(transit?.paint).toMatchObject({
+      "line-color": ["coalesce", ["get", "color"], "#0f766e"],
+    });
     expect(walking?.paint).toMatchObject({ "line-dasharray": [2, 2] });
     const transitLegend = MAP_LEGEND.find((entry) => entry.id === "transit");
     const walkingLegend = MAP_LEGEND.find((entry) => entry.id === "walking");

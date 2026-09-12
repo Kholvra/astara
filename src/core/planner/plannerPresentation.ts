@@ -1,4 +1,5 @@
 import type { JourneyRoute } from "~/core/routing/routingTypes";
+import { getCorridorHexColor } from "~/core/routing/corridorColors";
 import type {
   RouteMapData,
   RouteMapLeg,
@@ -35,6 +36,7 @@ export function createRouteMapDataForJourney(
         stepId: leg.legId,
         mode: "transit",
         label: `Rute ${leg.routeShortName}`,
+        color: getCorridorHexColor(leg.routeShortName),
         geometryState,
         coordinates,
       };

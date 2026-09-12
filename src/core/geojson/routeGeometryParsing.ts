@@ -21,6 +21,7 @@ import {
   readCoordinates,
   readEnum,
   readOptionalEnum,
+  readOptionalString,
   readString,
 } from "./routeGeometryParsingPrimitives";
 
@@ -66,6 +67,7 @@ export function parseLeg(
     CONNECTION_STATES,
     issues,
   );
+  const color = readOptionalString(record.color, `${path}.color`, issues);
   if (mode === "walking" && (!evidenceState || !connectionState)) {
     issues.push({
       path,
@@ -85,6 +87,7 @@ export function parseLeg(
     label,
     geometryState,
     coordinates,
+    ...(color ? { color } : {}),
     ...(evidenceState ? { evidenceState } : {}),
     ...(connectionState ? { connectionState } : {}),
   };
