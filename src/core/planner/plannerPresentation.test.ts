@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { GeoCoordinate } from "~/core/geojson/geometry";
-import type { JourneyRoute, TransitRouteLeg, WalkingRouteLeg } from "~/core/routing/routingTypes";
+import type {
+  JourneyRoute,
+  TransitRouteLeg,
+  WalkingRouteLeg,
+} from "~/core/routing/routingTypes";
 import { createRouteMapDataForJourney } from "./plannerPresentation";
 
 const ORIGIN_COORD: GeoCoordinate = [106.8272, -6.1754];
@@ -137,8 +141,20 @@ describe("createRouteMapDataForJourney", () => {
 
     const stopsById = new Map([
       ["origin-parent", { coordinate: ORIGIN_COORD, name: "Monumen Nasional" }],
-      ["platform-monas", { coordinate: [106.8273, -6.1755] as GeoCoordinate, name: "Monas Pintu 1" }],
-      ["platform-blokm", { coordinate: [106.7979, -6.2431] as GeoCoordinate, name: "Blok M Jalur 1" }],
+      [
+        "platform-monas",
+        {
+          coordinate: [106.8273, -6.1755] as GeoCoordinate,
+          name: "Monas Pintu 1",
+        },
+      ],
+      [
+        "platform-blokm",
+        {
+          coordinate: [106.7979, -6.2431] as GeoCoordinate,
+          name: "Blok M Jalur 1",
+        },
+      ],
       ["destination-parent", { coordinate: DEST_COORD, name: "Blok M" }],
     ]);
 

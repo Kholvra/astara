@@ -80,9 +80,7 @@ function createWalkingStep(
   }
 
   const title =
-    from === to
-      ? `Akses peron di ${from}`
-      : `Pindah dari ${from} ke ${to}`;
+    from === to ? `Akses peron di ${from}` : `Pindah dari ${from} ke ${to}`;
 
   return {
     id: leg.legId,

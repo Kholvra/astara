@@ -201,7 +201,8 @@ describe("Module1Explore markup and layout contract", () => {
           verification: "Terverifikasi",
         },
         plannerState: "no-route",
-        plannerMessage: "Tidak ada rute yang cocok. Coba halte atau waktu lain.",
+        plannerMessage:
+          "Tidak ada rute yang cocok. Coba halte atau waktu lain.",
         timingControls: createElement(
           "div",
           { id: "planner-status-section" },

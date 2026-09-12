@@ -244,7 +244,7 @@ export const Module1Explore = ({
                   <span className="block text-sm font-bold text-slate-800">
                     Mau ke mana hari ini?
                   </span>
-                  <span className="block text-xs text-slate-400 truncate">
+                  <span className="block truncate text-xs text-slate-400">
                     Ketik halte, stasiun, atau destinasi tujuan…
                   </span>
                 </span>
@@ -289,7 +289,7 @@ export const Module1Explore = ({
                       disabled={!origin && !destination}
                       aria-label="Tukar asal dan tujuan"
                       title="Tukar asal dan tujuan"
-                      className="group absolute left-[28px] top-full z-10 mt-1 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-500 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none after:absolute after:-inset-1.5 after:content-['']"
+                      className="group absolute top-full left-[28px] z-10 mt-1 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition-all after:absolute after:-inset-1.5 after:content-[''] hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none active:scale-90 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-500"
                     >
                       <ArrowUpDown className="h-3 w-3 transition-transform duration-300 group-hover:rotate-180" />
                     </button>
@@ -316,7 +316,7 @@ export const Module1Explore = ({
         }`}
       >
         <div className="relative w-full">
-          <div className="absolute right-4 -top-14 z-30">
+          <div className="absolute -top-14 right-4 z-30">
             <LocationButton
               context={activeContext}
               requestKey={locationRequestKey}
@@ -331,7 +331,7 @@ export const Module1Explore = ({
           id="explore-bottom-sheet"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className={`flex min-h-0 flex-1 flex-col rounded-t-[32px] border-t border-slate-100 bg-white px-5 pt-2.5 pb-6 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] [scrollbar-width:none] [-ms-overflow-style:none] sm:pb-8 [&::-webkit-scrollbar]:hidden ${
+          className={`flex min-h-0 flex-1 [scrollbar-width:none] flex-col rounded-t-[32px] border-t border-slate-100 bg-white px-5 pt-2.5 pb-6 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] [-ms-overflow-style:none] sm:pb-8 [&::-webkit-scrollbar]:hidden ${
             isExpanded ? "overflow-y-auto" : "overflow-hidden"
           }`}
         >
@@ -349,7 +349,7 @@ export const Module1Explore = ({
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onClick={handleClick}
-            className="group mx-auto -mt-1 mb-2.5 flex h-7 w-full cursor-grab touch-none items-center justify-center rounded-full active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+            className="group mx-auto -mt-1 mb-2.5 flex h-7 w-full cursor-grab touch-none items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:cursor-grabbing"
           >
             <span className="h-1.5 w-12 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-400 group-active:bg-slate-500" />
           </button>
@@ -403,7 +403,7 @@ export const Module1Explore = ({
                 <button
                   type="button"
                   onClick={onDismissLocationMessage}
-                  className="shrink-0 -mr-1 -mt-0.5 flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:text-slate-700 active:scale-95 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:outline-none"
+                  className="-mt-0.5 -mr-1 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:outline-none active:scale-95"
                   aria-label="Tutup pesan"
                 >
                   <X className="h-3.5 w-3.5 stroke-[2.2]" />
@@ -416,7 +416,7 @@ export const Module1Explore = ({
             className={`grid transition-all duration-300 ease-in-out ${
               isExpanded
                 ? "grid-rows-[1fr] opacity-100"
-                : "grid-rows-[0fr] opacity-0 pointer-events-none"
+                : "pointer-events-none grid-rows-[0fr] opacity-0"
             }`}
           >
             <div className="min-h-0 overflow-hidden">
