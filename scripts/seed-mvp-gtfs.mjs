@@ -21,7 +21,8 @@ import {
 } from "../src/server/gtfs/gtfsSnapshotWriteRows.ts";
 
 const ACTIVE_SLOT = 1;
-const MVP_SNAPSHOT_PREFIX = `${MVP_PROFILE_VERSION}-`;
+const MVP_SNAPSHOT_ID_PREFIX = "tj-mvp-core-v";
+const MVP_SNAPSHOT_ID_PATTERN = /^tj-mvp-core-v[1-9]\d*-(\S(?:.*\S)?)$/;
 const TRANSACTION_OPTIONS = {
   maxWait: 5_000,
   timeout: 120_000,
@@ -115,6 +116,30 @@ export async function seedMvpSnapshot(db, now = new Date().toISOString()) {
   };
 }
 
+/** @param {unknown} snapshotId */
+export function getSourceSnapshotId(snapshotId) {
+  if (
+    typeof snapshotId !== "string" ||
+    snapshotId.length === 0 ||
+    snapshotId.trim() !== snapshotId
+  ) {
+    throw new Error("The active GTFS snapshot ID is missing or malformed.");
+  }
+
+  let sourceSnapshotId = snapshotId;
+  while (true) {
+    const profileMatch = MVP_SNAPSHOT_ID_PATTERN.exec(sourceSnapshotId);
+    if (profileMatch?.[1] !== undefined) {
+      sourceSnapshotId = profileMatch[1];
+      continue;
+    }
+    if (sourceSnapshotId.startsWith(MVP_SNAPSHOT_ID_PREFIX)) {
+      throw new Error("The active GTFS snapshot ID is missing or malformed.");
+    }
+    return sourceSnapshotId;
+  }
+}
+
 /** @param {Database} db */
 async function readSourceSnapshot(db) {
   const pointer = await db.gtfsActiveSnapshot.findUnique({
@@ -127,9 +152,7 @@ async function readSourceSnapshot(db) {
     );
   }
 
-  const sourceSnapshotId = pointer.snapshotId.startsWith(MVP_SNAPSHOT_PREFIX)
-    ? pointer.snapshotId.slice(MVP_SNAPSHOT_PREFIX.length)
-    : pointer.snapshotId;
+  const sourceSnapshotId = getSourceSnapshotId(pointer.snapshotId);
   const row = await db.gtfsSnapshot.findUnique({
     where: { snapshotId: sourceSnapshotId },
     include: gtfsSnapshotInclude,
@@ -295,9 +318,10 @@ function assertExistingMvpSnapshot(
       existing.routes.map((route) => route.routeId),
       snapshot.routes.map((route) => route.id),
     );
-  const countsMatch = Object.entries(expected).every(
-    ([key, value]) => existing.counts[key] === value,
-  );
+  const countsMatch = Object.entries(expected).every(([key, value]) => {
+    const countKey = /** @type {keyof typeof existing.counts} */ (key);
+    return existing.counts[countKey] === value;
+  });
   if (!metadataMatches || !countsMatch) {
     throw new Error(
       "The existing MVP snapshot is incomplete or has conflicting provenance. Remove it only through an approved recovery operation.",
