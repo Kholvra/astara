@@ -243,24 +243,16 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
     </div>
   );
 
-  if (screen === "search") {
-    return (
-      <main data-planner-state={snapshot.state} className="h-full w-full">
-        <Module2Search
-          context={activeContext}
-          initialQuery={initialQuery}
-          localIndexAvailable={snapshot.catalog !== null}
-          searchItems={snapshot.catalog?.items ?? []}
-          onBack={handleSearchBack}
-          onSelectLocation={selectLocation}
-        />
-      </main>
-    );
-  }
-
   return (
-    <main data-planner-state={snapshot.state} className="h-full w-full">
-      <Module1Explore
+    <main
+      data-planner-state={snapshot.state}
+      className="relative h-full w-full overflow-hidden"
+    >
+      <div
+        className="h-full w-full"
+        aria-hidden={screen === "search"}
+      >
+        <Module1Explore
         activeContext={activeContext}
         destination={snapshot.destination}
         locationRequestKey={locationRequestKey}
@@ -337,6 +329,25 @@ export const Planner = ({ mapStyleUrl }: PlannerProps) => {
           }}
         />
       </Module1Explore>
+      </div>
+
+      {screen === "search" && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Pencarian ${activeContext === "origin" ? "asal" : "tujuan"}`}
+          className="absolute inset-0 z-40 flex flex-col bg-white animate-in fade-in duration-150"
+        >
+          <Module2Search
+            context={activeContext}
+            initialQuery={initialQuery}
+            localIndexAvailable={snapshot.catalog !== null}
+            searchItems={snapshot.catalog?.items ?? []}
+            onBack={handleSearchBack}
+            onSelectLocation={selectLocation}
+          />
+        </div>
+      )}
     </main>
   );
 };
