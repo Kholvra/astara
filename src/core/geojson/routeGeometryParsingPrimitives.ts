@@ -89,6 +89,17 @@ export function readString(
   return value;
 }
 
+export function readOptionalString(
+  value: unknown,
+  path: string,
+  issues: RouteMapValidationIssue[],
+): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return readString(value, path, issues);
+}
+
 export function readArray(
   value: unknown,
   path: string,

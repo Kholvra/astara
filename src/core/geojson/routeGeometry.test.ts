@@ -13,6 +13,7 @@ const supportedTransit = {
   mode: "transit" as const,
   label: "Koridor 1",
   geometryState: "supported" as const,
+  color: "#e11d48",
   coordinates: [
     [106.8, -6.2],
     [106.81, -6.19],
@@ -103,6 +104,7 @@ describe("prepareRouteMapData", () => {
         stepId: "step-transit",
         mode: "transit",
         lineStyle: "solid",
+        color: "#e11d48",
       },
     });
     expect(prepared.payload.selectedRoute.features[1]).toMatchObject({

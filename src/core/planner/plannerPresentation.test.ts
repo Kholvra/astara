@@ -206,4 +206,55 @@ describe("createRouteMapDataForJourney", () => {
     expect(mapData.legs[0]?.coordinates).toEqual([ORIGIN_COORD, DEST_COORD]);
     expect(mapData.legs[0]?.geometryState).toBe("limited");
   });
+
+  it("assigns distinct official corridor colors to multi-leg transfer journeys (e.g. 6H and 1P)", () => {
+    const leg6H: TransitRouteLeg = {
+      kind: "transit",
+      legId: "leg-6h",
+      routeId: "6H",
+      routeShortName: "6H",
+      routeLongName: "Lebak Bulus - Senen",
+      tripId: "trip-6h",
+      serviceId: "svc-1",
+      fromStopId: "stop-lebak-bulus",
+      toStopId: "stop-senen",
+      stopIds: ["stop-lebak-bulus", "stop-senen"],
+      timing: { semantics: "unavailable" },
+      geometry: {
+        state: "supported",
+        coordinates: [ORIGIN_COORD, INTERMEDIATE_COORD],
+        fromStopSequence: 1,
+        toStopSequence: 2,
+      },
+      lineage: [],
+    };
+
+    const leg1P: TransitRouteLeg = {
+      kind: "transit",
+      legId: "leg-1p",
+      routeId: "1P",
+      routeShortName: "1P",
+      routeLongName: "Senen - Blok M",
+      tripId: "trip-1p",
+      serviceId: "svc-1",
+      fromStopId: "stop-senen",
+      toStopId: "stop-sari-pan-pacific",
+      stopIds: ["stop-senen", "stop-sari-pan-pacific"],
+      timing: { semantics: "unavailable" },
+      geometry: {
+        state: "supported",
+        coordinates: [INTERMEDIATE_COORD, DEST_COORD],
+        fromStopSequence: 1,
+        toStopSequence: 2,
+      },
+      lineage: [],
+    };
+
+    const journey = makeBaseJourney([leg6H, leg1P]);
+    const mapData = createRouteMapDataForJourney(journey);
+
+    expect(mapData.legs).toHaveLength(2);
+    expect(mapData.legs[0]?.color).toBe("#16a34a"); // Koridor 6 (Green)
+    expect(mapData.legs[1]?.color).toBe("#e11d48"); // Koridor 1 (Red)
+  });
 });
