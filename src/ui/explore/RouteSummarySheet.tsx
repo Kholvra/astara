@@ -85,7 +85,10 @@ export const RouteSummarySheet = ({
             {transitLegs.map((leg, idx) => {
               const corridor = getCorridorStyle(leg.routeShortName);
               return (
-                <span key={leg.legId} className="inline-flex items-center gap-1.5">
+                <span
+                  key={leg.legId}
+                  className="inline-flex items-center gap-1.5"
+                >
                   <span
                     className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-white shadow-2xs"
                     style={{ backgroundColor: corridor.cssVar }}
@@ -111,7 +114,7 @@ export const RouteSummarySheet = ({
             <h2
               id="route-card-heading"
               tabIndex={-1}
-              className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl focus:outline-none"
+              className="text-2xl font-black tracking-tight text-slate-900 focus:outline-none sm:text-3xl"
             >
               {durationDisplay}
             </h2>
@@ -154,7 +157,7 @@ export const RouteSummarySheet = ({
         className={`grid transition-all duration-300 ease-in-out ${
           isStepsOpen
             ? "grid-rows-[1fr] opacity-100"
-            : "grid-rows-[0fr] opacity-0 pointer-events-none"
+            : "pointer-events-none grid-rows-[0fr] opacity-0"
         }`}
       >
         <div className="min-h-0 overflow-hidden">

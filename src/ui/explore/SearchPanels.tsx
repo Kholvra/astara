@@ -83,7 +83,7 @@ export const SearchOutcomePanel = ({
               key={suggestion.id}
               type="button"
               onClick={() => onQuickSelect?.(suggestion.query)}
-              className="flex min-h-[56px] w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3.5 py-2.5 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+              className="flex min-h-[56px] w-full items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3.5 py-2.5 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none active:scale-[0.99]"
             >
               <span
                 aria-hidden="true"
@@ -134,7 +134,7 @@ export const SearchOutcomePanel = ({
             <button
               type="button"
               onClick={onRetry}
-              className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 text-xs font-bold text-slate-800 shadow-2xs transition-all hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-800 active:scale-95 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+              className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2 text-xs font-bold text-slate-800 shadow-2xs transition-all hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none active:scale-95"
             >
               <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
               <span>Coba lagi</span>
@@ -228,7 +228,7 @@ const SearchResultButton = ({ result, onSelect }: SearchResultButtonProps) => {
     <button
       type="button"
       onClick={() => onSelect(result)}
-      className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3.5 py-2.5 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+      className="flex min-h-[56px] w-full cursor-pointer items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3.5 py-2.5 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none active:scale-[0.99]"
       aria-label={`Pilih ${result.title}`}
     >
       <span
@@ -302,7 +302,7 @@ export const ConfirmationPanel = ({
                   ),
                 )
               }
-              className="min-h-14 w-full cursor-pointer rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-left text-sm font-semibold text-slate-800 transition-all hover:border-emerald-300 hover:bg-emerald-50 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              className="min-h-14 w-full cursor-pointer rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-left text-sm font-semibold text-slate-800 transition-all hover:border-emerald-300 hover:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-[0.99]"
             >
               <span className="block break-words">{platform.label}</span>
               <span className="mt-1 block text-xs font-normal text-slate-500">
@@ -314,7 +314,7 @@ export const ConfirmationPanel = ({
         <button
           type="button"
           onClick={onCancel}
-          className="min-h-11 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          className="min-h-11 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-[0.99]"
         >
           Pilih hasil lain
         </button>
@@ -364,14 +364,14 @@ export const ConfirmationPanel = ({
                 ),
               )
             }
-            className="min-h-11 w-full cursor-pointer rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-2xs transition-all hover:bg-emerald-700 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+            className="min-h-11 w-full cursor-pointer rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-2xs transition-all hover:bg-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-[0.99]"
           >
             Gunakan halte ini
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="min-h-11 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+            className="min-h-11 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-[0.99]"
           >
             Pilih hasil lain
           </button>
@@ -412,14 +412,14 @@ export const ConfirmationPanel = ({
               ),
             )
           }
-          className="min-h-11 w-full cursor-pointer rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-2xs transition-all hover:bg-emerald-700 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          className="min-h-11 w-full cursor-pointer rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-2xs transition-all hover:bg-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-[0.99]"
         >
           Gunakan lokasi ini
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="min-h-11 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          className="min-h-11 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:scale-[0.99]"
         >
           Pilih hasil lain
         </button>

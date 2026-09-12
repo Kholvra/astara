@@ -206,16 +206,17 @@ function projectStop(
     return undefined;
   }
 
-  const competingCandidate = candidates.find(
-    (candidate) => {
-      const dShape = distanceAlongShape(points, best.position, candidate.position);
-      return (
-        dShape > Math.max(50, ambiguityThresholdMeters * 2) &&
-        candidate.distanceMeters - best.distanceMeters <=
-          ambiguityThresholdMeters
-      );
-    },
-  );
+  const competingCandidate = candidates.find((candidate) => {
+    const dShape = distanceAlongShape(
+      points,
+      best.position,
+      candidate.position,
+    );
+    return (
+      dShape > Math.max(50, ambiguityThresholdMeters * 2) &&
+      candidate.distanceMeters - best.distanceMeters <= ambiguityThresholdMeters
+    );
+  });
   if (competingCandidate) {
     return undefined;
   }

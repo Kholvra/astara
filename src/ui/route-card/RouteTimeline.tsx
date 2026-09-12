@@ -73,7 +73,7 @@ export const RouteTimeline = ({
         <ol className="relative ml-2 space-y-4 border-l-2 border-slate-200 pl-4">
           {steps.map((step) => (
             <li key={step.id} className="relative">
-              <span className="absolute -left-[23px] top-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-600 ring-2 ring-emerald-100" />
+              <span className="absolute top-1 -left-[23px] h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-600 ring-2 ring-emerald-100" />
               <div>
                 <p className="text-sm font-bold text-slate-900">{step.title}</p>
                 <p className="mt-0.5 text-sm text-slate-600">{step.detail}</p>
@@ -148,7 +148,7 @@ export const RouteTimeline = ({
               {/* Vertical Corridor Line */}
               <div className="flex w-4 shrink-0 justify-center">
                 <div
-                  className="w-[3px] rounded-full my-1 transition-colors"
+                  className="my-1 w-[3px] rounded-full transition-colors"
                   style={{ backgroundColor: corridor.cssVar }}
                 />
               </div>
@@ -173,7 +173,7 @@ export const RouteTimeline = ({
                 </div>
 
                 {/* Line 2: Stops & Duration + Expand Button */}
-                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-slate-600 font-medium">
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-sm font-medium text-slate-600">
                   <span>
                     {totalPassedStops} halte (±{durationMinutes} mnt)
                   </span>
@@ -185,7 +185,7 @@ export const RouteTimeline = ({
                         type="button"
                         onClick={() => toggleStops(leg.legId)}
                         aria-expanded={isStopsExpanded}
-                        className="inline-flex cursor-pointer items-center gap-0.5 text-xs font-semibold text-slate-600 hover:text-slate-950 transition-colors"
+                        className="inline-flex cursor-pointer items-center gap-0.5 text-xs font-semibold text-slate-600 transition-colors hover:text-slate-950"
                       >
                         <span>
                           {isStopsExpanded ? "Tutup" : "Lihat halte dilewati"}
@@ -214,7 +214,7 @@ export const RouteTimeline = ({
                         key={stopId}
                         className="relative text-xs font-medium text-slate-700"
                       >
-                        <span className="absolute -left-[17px] top-1.5 h-1.5 w-1.5 rounded-full bg-slate-400" />
+                        <span className="absolute top-1.5 -left-[17px] h-1.5 w-1.5 rounded-full bg-slate-400" />
                         <span>{formatHalteName(getLabel(stopId))}</span>
                       </li>
                     ))}

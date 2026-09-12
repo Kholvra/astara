@@ -179,11 +179,7 @@ export const Module2Search = ({
             </p>
           </div>
         )}
-        <p
-          className="sr-only"
-          role="status"
-          aria-live="polite"
-        >
+        <p className="sr-only" role="status" aria-live="polite">
           {getOutcomeMessage(outcome, pending, selectionMessage)}
         </p>
 

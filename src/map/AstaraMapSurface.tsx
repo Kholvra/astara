@@ -64,12 +64,7 @@ export const AstaraMapSurface = ({
   const markerFeatures = payload?.decisionMarkers.features ?? [];
   const activeStepLabel = getActiveStepLabel(payload, activeStepId);
   const statusPanel = showStatusPanel
-    ? getStatusPanel(
-        status,
-        routeState,
-        hasPayload,
-        showLoadingStatus,
-      )
+    ? getStatusPanel(status, routeState, hasPayload, showLoadingStatus)
     : undefined;
   const rootClassName = [
     "astara-map relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-100",
